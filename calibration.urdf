@@ -56,7 +56,7 @@
 			<origin rpy="0 0 0" xyz="0 0.000266 0.050352"/>
 		</inertial>
 	</link>
-	<joint name="head_z_rjoint" type="revolute">
+	<joint name="head_z" type="revolute">
 		<parent link="torso"/>
 		<child link="neck"/>
 		<origin rpy="0 0 0" xyz="-0.025 0.005 0.23"/>
@@ -85,11 +85,11 @@
 			<origin rpy="0 0 0" xyz="0.01525 -0.023771 0.09423"/>
 		</inertial>
 	</link>
-	<joint name="head_y_rjoint" type="revolute">
+	<joint name="head_y" type="revolute">
 		<parent link="neck"/>
 		<child link="head"/>
 		<origin rpy="0 0 0" xyz="0 0.0 0.105"/>
-		<axis xyz="0 1 0"/>
+		<axis xyz="0 -1 0"/>
 		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
 	</joint>
     <!-- ====RIGHT ARM=== -->
@@ -365,21 +365,8 @@
 		<child link="gripper"/>
 		<origin rpy="0 -1 0" xyz="0.00 -0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<!--<limit effort="30" lower="-2.57" upper="0" velocity="1"/>-->
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
-	<link name="endeffector">
-    	<visual>
-      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
-      		<geometry>
-        		<sphere radius="0.01"/>
-      		</geometry>
-    	</visual>
-		<inertial>
-			<mass value="0.000009"/>
-			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
-			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
-		</inertial>
-  	</link>
     <!-- ====LEFT ARM=== -->
     <link name="left_shoulder">
 		<visual>
@@ -432,7 +419,7 @@
 			<origin rpy="0 0 0" xyz="-0 -0.041345 -0.002364"/>
 		</inertial>
 	</link>
-	<joint name="l_shoulder_y_rjoint" type="revolute">
+	<joint name="l_shoulder_y" type="revolute">
 		<parent link="left_shoulder"/>
 		<child link="left_collarbone"/>
 		<origin rpy="0 0 0" xyz="-0.021 0.023 0.033"/>
@@ -461,7 +448,7 @@
 			<origin rpy="0 0 0" xyz="-0.02306 -0.000321 -0.0866"/>
 		</inertial>
 	</link>
-	<joint name="l_upperarm_x" type="revolute">
+	<joint name="l_arm_x" type="revolute">
 		<parent link="left_collarbone"/>
 		<child link="left_upper_arm"/>
 		<origin rpy="0 0 0" xyz="0.00 0.073 -0.023"/>
@@ -648,25 +635,12 @@
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint-->
-	<joint name="grippel_" type="revolute">
+	<joint name="grippel_" type="fixed">
 		<parent link="left_palm"/>
 		<child link="grippel"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="0" upper="2.57" velocity="1"/>
 	</joint>
-	<link name="endeffectol">
-    	<visual>
-      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
-      		<geometry>
-        		<sphere radius="0.01"/>
-      		</geometry>
-    	</visual>
-		<inertial>
-			<mass value="0.000009"/>
-			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
-			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
-		</inertial>
-  	</link>
 </robot>
 

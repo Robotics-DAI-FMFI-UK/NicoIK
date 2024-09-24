@@ -78,7 +78,7 @@ def rad2nicodeg(nicojoints, rads):
 set_printoptions(precision=3)
 set_printoptions(suppress=True)
 
-def get_joints_limits(robot_id, num_joints, arg_dict):
+def get_joints_limits(robot_id, num_joints):
     """
     Identify limits, ranges and rest poses of individual robot joints. Uses data from robot model.
 
@@ -101,16 +101,10 @@ def get_joints_limits(robot_id, num_joints, arg_dict):
             joints_limits_u.append(joint_info[9])
             joints_ranges.append(joint_info[9] - joint_info[8])
             joints_rest_poses.append((joint_info[9] + joint_info[8]) / 2)
-        if arg_dict["left"]:
-            if link_name.decode("utf-8") == 'endeffectol':
-                end_effector_index = jid
-        else:
-            if link_name.decode("utf-8") == 'endeffector':
-                # if link_name.decode("utf-8") == 'endeffector':
-                end_effector_index = jid
+
 
     return [joints_limits_l,
-            joints_limits_u], joints_ranges, joints_rest_poses, end_effector_index, joint_names, link_names, joint_indices
+            joints_limits_u], joints_ranges, joints_rest_poses, joint_names, link_names, joint_indices
 
 
 def get_real_joints(robot, joints):
@@ -134,19 +128,13 @@ def spin_simulation(steps):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    
-    parser.add_argument("-rr", "--real_robot", action="store_true", help="If set, execute action on real robot.")
-
-    arg_dict = vars(parser.parse_args())
-
     p.connect(p.GUI)
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=90, cameraPitch=-40, cameraTargetPosition=[0, 0, 0])
 
-    robot_id = p.loadURDF("./calibrator.urdf", [0, 0, 0])
+    robot_id = p.loadURDF("./calibration.urdf", [0, 0, 0])
     # Create table mesh
-    p.createMultiBody(baseVisualShsapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.3, .45, 0.02],
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.3, .45, 0.02],
                                                                rgbaColor=[0.6, 0.6, 0.6, 1]),
                       baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.3, .45, 0.02]),
                       baseMass=0, basePosition=[0.27, 0, -0.005])
@@ -158,8 +146,8 @@ def main():
                       basePosition=[0.41, 0, 0.008])
 
     num_joints = p.getNumJoints(robot_id)
-    joints_limits, joints_ranges, joints_rest_poses, end_effector_index, joint_names, link_names, joint_indices = get_joints_limits(
-        robot_id, num_joints, arg_dict)
+    joints_limits, joints_ranges, joints_rest_poses, joint_names, link_names, joint_indices = get_joints_limits(
+        robot_id, num_joints)
     # Custom intital position
 
     # joints_rest_poses = deg2rad([-15, 68, 2.8, 56.4, 0.0, 11.0, -70.0])
@@ -167,24 +155,24 @@ def main():
     #actuated_joints, actuated_initpos = match_joints(init_pos, joint_names)
 
     # Real robot initialization and setting all joints
-    if arg_dict["real_robot"]:
-        from nicomotion.Motion import Motion
-        motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
-        try:
-            robot = Motion(motorConfig=motorConfig)
-            print('Robot initialized')
-        except:
-            print('Motors are not operational')
-            exit()
+    
+
+    from nicomotion.Motion import Motion
+    motorConfig = './nico_humanoid_upper_rh7d_ukba.json'
+    try:
+        robot = Motion(motorConfig=motorConfig)
+        print('Robot initialized')
+    except:
+        print('Motors are not operational')
+        exit()
         # robot = init_robot()
 
-        actual_position = get_real_joints(robot, actuated_joints)
-        p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(actuated_joints[i], actuated_initpos[i]))
-        time.sleep(0.2)
-    #spin_simulation(50)
-
-
-    input('Press enter to exit')
+    while True:
+        actual_position = get_real_joints(robot, joint_names)
+        for i in range(len(joint_indices)):
+            p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
+            
+        spin_simulation(1)
 
     p.disconnect()
 
