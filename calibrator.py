@@ -41,9 +41,9 @@ def nicodeg2rad(nicojoints, nicodegrees):
     rads = []
 
     for nicojoint, nicodegree in zip(nicojoints, nicodegrees):
-        if nicojoint == 'r_wrist_z':
+        if nicojoint == 'r_wrist_z' or nicojoint == 'l_wrist_z':
             rad = deg2rad(nicodegree/2)
-        elif nicojoint == 'r_wrist_x':
+        elif nicojoint == 'r_wrist_x' or nicojoint == 'l_wrist_x':
             rad = deg2rad(nicodegree/4)
         else:
             rad = deg2rad(nicodegree)
@@ -171,7 +171,7 @@ def main():
         actual_position = get_real_joints(robot, joint_names)
         for i in range(len(joint_indices)):
             p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
-            
+
         spin_simulation(1)
 
     p.disconnect()
