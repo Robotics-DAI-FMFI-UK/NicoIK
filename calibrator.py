@@ -3,9 +3,9 @@ import time
 from numpy import random, rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean 
 import argparse
 import os
+import keyboard
 
-# Delay between simulation steps
-SIM_STEP_DELAY = 0.01
+
 
 init_pos = {  # standard position
     'l_shoulder_z': -24.0,
@@ -118,9 +118,6 @@ def get_real_joints(robot, joints):
 
     return last_position
 
-
-
-
 def spin_simulation(steps):
     for i in range(steps):
         p.stepSimulation()
@@ -134,16 +131,16 @@ def main():
 
     robot_id = p.loadURDF("./calibration.urdf", [0, 0, 0])
     # Create table mesh
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.3, .45, 0.02],
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.31, .45, 0.025],
                                                                rgbaColor=[0.6, 0.6, 0.6, 1]),
-                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.3, .45, 0.02]),
-                      baseMass=0, basePosition=[0.27, 0, -0.005])
+                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.31, .45, 0.025]),
+                      baseMass=0, basePosition=[0.27, 0, 0.029])
     # Create tablet mesh
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.16, .26, 0.01],
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.16, .26, 0.02],
                                                                rgbaColor=[0, 0, 0.0, 1]),
                       baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
-                                                                     halfExtents=[.16, .26, 0.01]), baseMass=0,
-                      basePosition=[0.41, 0, 0.008])
+                                                                     halfExtents=[.16, .26, 0.02]), baseMass=0,
+                      basePosition=[0.41, 0, 0.036])
 
     num_joints = p.getNumJoints(robot_id)
     joints_limits, joints_ranges, joints_rest_poses, joint_names, link_names, joint_indices = get_joints_limits(
@@ -172,6 +169,15 @@ def main():
         for i in range(len(joint_indices)):
             p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
 
+        keypress = p.getKeyboardEvents()
+        if ord('d') in keypress:
+                robot.disableTorqueAll()
+                #print("Torque disabled in all joints")
+        if ord('f') in keypress:
+                robot.enableTorqueAll()
+                #print("Torque enabled in all joints")
+        if ord('q') in keypress:
+                break
         spin_simulation(1)
 
     p.disconnect()
