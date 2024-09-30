@@ -226,7 +226,7 @@
 	<joint name="r_elbow_y" type="revolute">
 		<parent link="right_upper_arm"/>
 		<child link="right_lower_arm"/>
-		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
+		<origin rpy="0 -1.57 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
 	</joint>
@@ -501,7 +501,7 @@
 	<joint name="l_elbow_y" type="revolute">
 		<parent link="left_upper_arm"/>
 		<child link="left_lower_arm"/>
-		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
+		<origin rpy="0 -1.57 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
 	</joint>
