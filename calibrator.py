@@ -5,20 +5,20 @@ import argparse
 import os
 #import keyboard
 
-
-
+calibration_matrix = [[0, 0, 0, 20, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 20, 0, 50, 0, 0, -180, -180.0, -180, -180.0],
+                    [-0.4, -1.45, 9.98, 129.89, -8.92, 139.56, 18.15, -19.65, -180.0, -180.0, -180.0, -180.0, 10.15, 135.69, -18.86, 160.22, 29.05, -50.95, -179.47, -180.0, -180.0, -180.0],
+                    [-0.31, -1.45, 8.66, 93.41, -4.44, 141.93, 25.71, -18.51, -180.0, -180.0, -180.0, -180.0, 2.15, 94.37, -20.62, 160.22, 31.16, -92.62, -179.47, -180.0, -180.0, -180.0],
+                    [-4.53, 14.29, 73.89, 0.22, 74.51, 49.629999999999995, -118.81, 163.56, -180.0, -179.47, -180.0, -180.0, -5.05, 3.74, 26.15, 92.62, -121.63, -9.01, -180.0, -180.0, -180.0, -180.0],
+                    [-4.53, 14.29, -0.22, 19.74, 31.78, 117.85, -70.64, 163.56, -180.0, -180.0, -180.0, -180.0, 76.26, -3.91, 81.54, 51.56, -131.3, 130.77, -180.0, -180.0, -180.0, -180.0],
+                    [-4.62, 14.37, -0.13, 19.74, 31.25, 117.41, -68.26, 164.18, -180.0, -180.0, -180.0, -180.0, 77.41, -14.29, 52.88, 51.650000000000006, -122.24, 133.05, -180.0, -180.0, -180.0, -180.0],
+                    [-4.53, 14.29, -0.13, 19.74, 30.99, 117.41, -67.74, 162.42, -180.0, -180.0, -180.0, -180.0, 89.71, 67.38, 40.31, 61.05, -79.16, 133.05, -180.0, -180.0, -180.0, -180.0],
+                    [-4.35, 14.29, 81.89, 75.65, 39.34, 61.58, -81.8, 180.0, -180.0, -180.0, -180.0, -180.0, 10.59, 10.33, 22.55, 103.52000000000001, -46.81, 133.05, -180.0, -180.0, -180.0, -180.0],
+                    [-0.66, -18.59, 75.38, -2.15, 86.29, 51.56, -132.97, 180.0, -180.0, -179.65, -180.0, -180.0, 11.21, 20.0, 5.49, 112.48, -11.12, -123.91, -178.33, -180.0, -180.0, -180.0],
+                    [0, 0, -34.51, -62.9, 118.46, 127.08, -127.08, 118.37, -180, -180, -180.0, -180.0, -27.03, -62.29, 113.1, 132.18, -97.8, 145.8, -180, -180.0, -180, -180.0]]
 init_pos = {  # standard position
-    'l_shoulder_z': -24.0,
-    'l_shoulder_y': 13.0,
-    'l_arm_x': 0.0,
-    'l_elbow_y': 104.0,
-    'l_wrist_z': -4.0,
-    'l_wrist_x': -55.0,
-    'l_thumb_z': -62.0,
-    'l_thumb_x': -180.0,
-    'l_indexfinger_x': -170.0,
-    'l_middlefingers_x': -180.0,
-    'r_shoulder_z': -25,
+    'head_z': 0.0,
+    'head_y': 0.0,
+    'r_shoulder_z': 84,
     'r_shoulder_y': 84,
     'r_arm_x': 47,
     'r_elbow_y': 94,
@@ -28,8 +28,16 @@ init_pos = {  # standard position
     'r_thumb_x': 44,
     'r_indexfinger_x': -90,
     'r_middlefingers_x': 38.0,
-    'head_z': 0.0,
-    'head_y': 0.0
+    'l_shoulder_z': -24.0,
+    'l_shoulder_y': 13.0,
+    'l_arm_x': 0.0,
+    'l_elbow_y': 104.0,
+    'l_wrist_z': -4.0,
+    'l_wrist_x': -55.0,
+    'l_thumb_z': -62.0,
+    'l_thumb_x': -180.0,
+    'l_indexfinger_x': -170.0,
+    'l_middlefingers_x': -180.0
 }
 
 def nicodeg2rad(nicojoints, nicodegrees):
@@ -129,7 +137,7 @@ def main():
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=90, cameraPitch=-40, cameraTargetPosition=[0, 0, 0])
 
-    robot_id = p.loadURDF("./calibration.urdf", [0, 0, 0])
+    robot_id = p.loadURDF("./nico_alljoints.urdf", [0, 0, 0])
     # Create table mesh
     p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.31, .45, 0.025],
                                                                rgbaColor=[0.6, 0.6, 0.6, 1]),
@@ -163,7 +171,7 @@ def main():
         print('Motors are not operational')
         exit()
         # robot = init_robot()
-
+    calibration = 0
     while True:
         actual_position = get_real_joints(robot, joint_names)
         for i in range(len(joint_indices)):
@@ -176,8 +184,26 @@ def main():
         if ord('f') in keypress:
                 robot.enableTorqueAll()
                 #print("Torque enabled in all joints")
+        if ord('a') in keypress:
+                all_position = get_real_joints(robot, init_pos.keys())
+                #print(init_pos.keys())
+                print("Actual position: ", all_position)
+                keypress.clear()
+                time.sleep(1)
+        input("Press Enter to continue...")
+        index = 0
+        for k in init_pos.keys():
+            #print(calibration_matrix[0][k])
+            robot.setAngle(k, calibration_matrix[calibration][index], 0.01)
+            print(index)
+            index += 1
+        calibration += 1
+        print("Calibration: ", calibration)
+        keypress.clear()
+        time.sleep(1)
         if ord('q') in keypress:
                 break
+        keypress.clear()
         spin_simulation(1)
 
     p.disconnect()
