@@ -3,7 +3,12 @@ import time
 from numpy import random, rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean 
 import argparse
 import os
-#import keyboard
+import csv
+
+mode = 'calibrate' # anything else is exploratory mode
+
+SPEED = 0.05
+DELAY= 3
 
 calibration_matrix = [[0, 0, 0, 20, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 20, 0, 50, 0, 0, -180, -180.0, -180, -180.0],
                     [-0.4, -1.45, 9.98, 129.89, -8.92, 139.56, 18.15, -19.65, -180.0, -180.0, -180.0, -180.0, 10.15, 135.69, -18.86, 160.22, 29.05, -50.95, -179.47, -180.0, -180.0, -180.0],
@@ -15,6 +20,12 @@ calibration_matrix = [[0, 0, 0, 20, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 2
                     [-4.35, 14.29, 81.89, 75.65, 39.34, 61.58, -81.8, 180.0, -180.0, -180.0, -180.0, -180.0, 10.59, 10.33, 22.55, 103.52000000000001, -46.81, 133.05, -180.0, -180.0, -180.0, -180.0],
                     [-0.66, -18.59, 75.38, -2.15, 86.29, 51.56, -132.97, 180.0, -180.0, -179.65, -180.0, -180.0, 11.21, 20.0, 5.49, 112.48, -11.12, -123.91, -178.33, -180.0, -180.0, -180.0],
                     [0, 0, -34.51, -62.9, 118.46, 127.08, -127.08, 118.37, -180, -180, -180.0, -180.0, -27.03, -62.29, 113.1, 132.18, -97.8, 145.8, -180, -180.0, -180, -180.0]]
+
+reset_pose = [0, 0, 0, 40, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 40, 0, 50, 0, 0, -180, -180.0, -180, -180.0]
+
+calib_pose = ['Resting','Touchscreen corner','Touchscreen center','Left body','Left thumb','Right body','Eyes','Ears','Middlepoint','Boh arms',
+                'Right eye','Top head','Left eye','Left body','LF-right eye','LF-left eye','LF-right shoulder','LF-right thumb','LF-right index',]
+
 init_pos = {  # standard position
     'head_z': 0.0,
     'head_y': 0.0,
@@ -85,6 +96,31 @@ def rad2nicodeg(nicojoints, rads):
 
 set_printoptions(precision=3)
 set_printoptions(suppress=True)
+
+def reset_robot(robot, init_pos, values):
+    index=0
+    for k in init_pos.keys():
+        robot.setAngle(k, float(values[index]), SPEED)
+        index += 1
+    return robot
+
+def check_execution(robot, joints, target,accuracy, verbose):
+    tic = time.time()
+    distance = 100
+    step = 0
+    while distance > accuracy:
+        actual = get_real_joints(robot, joints)
+        # print(timestamp)
+        diff = array(target) - array(actual)
+        distance = linalg.norm(diff)
+        if verbose:
+            print('RealNICO Step: {}, Time: {:.2f}, JointDeg: {}'.format(step, time.time() - tic, ['{:.2f}'.format(act) for act in actual]))
+        else:
+            print('Duration: {:.2f}, Error: {:.2f}'.format(time.time() - tic, distance), end='\r')
+        time.sleep(0.01)
+        step += 1
+    toc = time.time()
+    return toc - tic
 
 def get_joints_limits(robot_id, num_joints):
     """
@@ -171,42 +207,63 @@ def main():
         print('Motors are not operational')
         exit()
         # robot = init_robot()
-    calibration = 0
-    while True:
+    index = 0
+    if mode ==  'calibrate':
         actual_position = get_real_joints(robot, joint_names)
         for i in range(len(joint_indices)):
             p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
+    
+        with open('calibration.csv', mode='r') as csvfile:
+            csvreader = csv.reader(csvfile)
+            for row in csvreader:  # Iterate through each row in the CSV file
+                row = array(row, dtype=float)
+                reset_robot(robot, init_pos, row)
+                #check_execution(robot, init_pos, row, 0.1, True)
+                for i in range(len(joint_indices)):
+                    p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
+                spin_simulation(1)   
 
-        keypress = p.getKeyboardEvents()
-        if ord('d') in keypress:
+                print("{}.{} ".format(index+1, calib_pose[index]))
+                time.sleep(DELAY)
+                #input("Press Enter to continue...")
+                reset_robot(robot, init_pos, reset_pose)
+                time.sleep(DELAY)
+                index += 1
+
+    else:
+        processed_keys = set()
+        while True:
+            actual_position = get_real_joints(robot, joint_names)
+            for i in range(len(joint_indices)):
+                p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
+            print("Actual position: ", actual_position,  end='\r')
+            keypress = p.getKeyboardEvents()
+            if ord('d') in keypress:
                 robot.disableTorqueAll()
                 #print("Torque disabled in all joints")
-        if ord('f') in keypress:
+            if ord('f') in keypress:
                 robot.enableTorqueAll()
                 #print("Torque enabled in all joints")
-        if ord('a') in keypress:
+            if ord('a') in keypress:
                 all_position = get_real_joints(robot, init_pos.keys())
                 #print(init_pos.keys())
                 print("Actual position: ", all_position)
+                with open('calibration.csv', 'a', newline='') as csvfile:
+                    csvwriter = csv.writer(csvfile)
+                    csvwriter.writerow(all_position)
                 keypress.clear()
                 time.sleep(1)
-        input("Press Enter to continue...")
-        index = 0
-        for k in init_pos.keys():
-            #print(calibration_matrix[0][k])
-            robot.setAngle(k, calibration_matrix[calibration][index], 0.01)
-            print(index)
-            index += 1
-        calibration += 1
-        print("Calibration: ", calibration)
-        keypress.clear()
-        time.sleep(1)
-        if ord('q') in keypress:
+                processed_keys.add(ord('a'))
+            elif ord('a') not in keypress and ord('a') in processed_keys:
+                processed_keys.remove(ord('a'))            
+
+            if ord('q') in keypress:
                 break
-        keypress.clear()
-        spin_simulation(1)
+            keypress.clear()
+            spin_simulation(1)
 
     p.disconnect()
+
 
 
 if __name__ == "__main__":
