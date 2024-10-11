@@ -104,7 +104,7 @@ def reset_robot(robot, init_pos, values):
         index += 1
     return robot
 
-def check_execution(robot, joints, target,accuracy, verbose):
+def check_execution(robot, joints, target, accuracy, verbose):
     tic = time.time()
     distance = 100
     step = 0
@@ -120,6 +120,7 @@ def check_execution(robot, joints, target,accuracy, verbose):
         time.sleep(0.01)
         step += 1
     toc = time.time()
+    print("\n")
     return toc - tic
 
 def get_joints_limits(robot_id, num_joints):
@@ -218,7 +219,8 @@ def main():
             for row in csvreader:  # Iterate through each row in the CSV file
                 row = array(row, dtype=float)
                 reset_robot(robot, init_pos, row)
-                #check_execution(robot, init_pos, row, 0.1, True)
+                check_execution(robot, init_pos, row, 3, False)
+                actual_position = get_real_joints(robot, joint_names)
                 for i in range(len(joint_indices)):
                     p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
                 spin_simulation(1)   
