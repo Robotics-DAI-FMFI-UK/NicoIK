@@ -10,20 +10,31 @@ mode = 'calibrate' # anything else is exploratory mode
 SPEED = 0.05
 DELAY= 3
 
-calibration_matrix = [[0, 0, 0, 20, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 20, 0, 50, 0, 0, -180, -180.0, -180, -180.0],
-                    [-0.4, -1.45, 9.98, 129.89, -8.92, 139.56, 18.15, -19.65, -180.0, -180.0, -180.0, -180.0, 10.15, 135.69, -18.86, 160.22, 29.05, -50.95, -179.47, -180.0, -180.0, -180.0],
-                    [-0.31, -1.45, 8.66, 93.41, -4.44, 141.93, 25.71, -18.51, -180.0, -180.0, -180.0, -180.0, 2.15, 94.37, -20.62, 160.22, 31.16, -92.62, -179.47, -180.0, -180.0, -180.0],
-                    [-4.53, 14.29, 73.89, 0.22, 74.51, 49.629999999999995, -118.81, 163.56, -180.0, -179.47, -180.0, -180.0, -5.05, 3.74, 26.15, 92.62, -121.63, -9.01, -180.0, -180.0, -180.0, -180.0],
-                    [-4.53, 14.29, -0.22, 19.74, 31.78, 117.85, -70.64, 163.56, -180.0, -180.0, -180.0, -180.0, 76.26, -3.91, 81.54, 51.56, -131.3, 130.77, -180.0, -180.0, -180.0, -180.0],
-                    [-4.62, 14.37, -0.13, 19.74, 31.25, 117.41, -68.26, 164.18, -180.0, -180.0, -180.0, -180.0, 77.41, -14.29, 52.88, 51.650000000000006, -122.24, 133.05, -180.0, -180.0, -180.0, -180.0],
-                    [-4.53, 14.29, -0.13, 19.74, 30.99, 117.41, -67.74, 162.42, -180.0, -180.0, -180.0, -180.0, 89.71, 67.38, 40.31, 61.05, -79.16, 133.05, -180.0, -180.0, -180.0, -180.0],
-                    [-4.35, 14.29, 81.89, 75.65, 39.34, 61.58, -81.8, 180.0, -180.0, -180.0, -180.0, -180.0, 10.59, 10.33, 22.55, 103.52000000000001, -46.81, 133.05, -180.0, -180.0, -180.0, -180.0],
-                    [-0.66, -18.59, 75.38, -2.15, 86.29, 51.56, -132.97, 180.0, -180.0, -179.65, -180.0, -180.0, 11.21, 20.0, 5.49, 112.48, -11.12, -123.91, -178.33, -180.0, -180.0, -180.0],
-                    [0, 0, -34.51, -62.9, 118.46, 127.08, -127.08, 118.37, -180, -180, -180.0, -180.0, -27.03, -62.29, 113.1, 132.18, -97.8, 145.8, -180, -180.0, -180, -180.0]]
-
 reset_pose = [0, 0, 0, 40, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 40, 0, 50, 0, 0, -180, -180.0, -180, -180.0]
 
-calib_pose = ['Resting','Touchscreen corner','Touchscreen center','Left body','Left thumb','Right body','Eyes','Ears','Middlepoint','Boh arms',
+
+marker_position = [[0.23,-0.267,0.055], #right lower touchscreen
+                [0.30,-0.267,0.055], #right touchscreen edge 1
+                [0.36,-0.267,0.055], #right touchscreen edge 2
+                [0.465,-0.267,0.055], #right touchscreen edge 3
+                [0.465,-0.107,0.055], #touchscreen place 1
+                [0.44,0.023,0.055], #touchscreen place 2
+                [0.23,0.0,0.055], #middle lower touchscreen
+                [0.06,0.075,0.235], #top left front body corner
+                [0.1,0.025,0.40], #left eye
+                [0.1,0.0,0.36], # nose
+                [0.1,-0.025,0.40], #right eye
+                [-0.04,-0.045,0.45], #right head
+                [-0.04,-0.0,0.45], #top head
+                [0.06,0.075,0.055], #bottom left front body corner
+                [0.25,-0.003,0.055], #mark sign middle low touchscreen
+                ]
+
+#calib_pose = ['Resting','Touchscreen corner','Touchscreen center','Left body','Left thumb','Right body','Eyes','Ears','Middlepoint','Boh arms',
+#                'Right eye','Top head','Left eye','Left body','LF-right eye','LF-left eye','LF-right shoulder','LF-right thumb','LF-right index',]
+
+calib_pose = ['right lower touchscreen','right touchscreen edge 1','right touchscreen edge 2','right touchscreen edge 3','touchscreen place 1',
+            'touchscreen place 1','middle lower touchscreen','top left front body corner','left eye','nose','right eye','right head','top head',
                 'Right eye','Top head','Left eye','Left body','LF-right eye','LF-left eye','LF-right shoulder','LF-right thumb','LF-right index',]
 
 init_pos = {  # standard position
@@ -123,6 +134,12 @@ def check_execution(robot, joints, target, accuracy, verbose):
     print("\n")
     return toc - tic
 
+def set_sim_robot(robot, robot_id,joint_names, joint_indices):
+    actual_position = get_real_joints(robot, joint_names)
+    for i in range(len(joint_indices)):
+        p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
+    spin_simulation(5) 
+
 def get_joints_limits(robot_id, num_joints):
     """
     Identify limits, ranges and rest poses of individual robot joints. Uses data from robot model.
@@ -168,6 +185,10 @@ def spin_simulation(steps):
         p.stepSimulation()
         time.sleep(0.01)
 
+def create_marker (position):
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.006,
+                                                               rgbaColor=[1, 0, 0, .8]),
+                      basePosition=position)
 
 def main():
     p.connect(p.GUI)
@@ -176,16 +197,16 @@ def main():
 
     robot_id = p.loadURDF("./nico_alljoints.urdf", [0, 0, 0])
     # Create table mesh
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.31, .45, 0.025],
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
                                                                rgbaColor=[0.6, 0.6, 0.6, 1]),
-                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.31, .45, 0.025]),
-                      baseMass=0, basePosition=[0.27, 0, 0.029])
+                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025]),
+                      baseMass=0, basePosition=[0.26, 0, 0.029])
     # Create tablet mesh
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.16, .26, 0.02],
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.165, .267, 0.02],
                                                                rgbaColor=[0, 0, 0.0, 1]),
                       baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
-                                                                     halfExtents=[.16, .26, 0.02]), baseMass=0,
-                      basePosition=[0.41, 0, 0.036])
+                                                                     halfExtents=[.165, .267, 0.02]), baseMass=0,
+                      basePosition=[0.395, 0, 0.036])
 
     num_joints = p.getNumJoints(robot_id)
     joints_limits, joints_ranges, joints_rest_poses, joint_names, link_names, joint_indices = get_joints_limits(
@@ -209,28 +230,32 @@ def main():
         exit()
         # robot = init_robot()
     index = 0
+    results= []
     if mode ==  'calibrate':
-        actual_position = get_real_joints(robot, joint_names)
-        for i in range(len(joint_indices)):
-            p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
-    
-        with open('calibration.csv', mode='r') as csvfile:
+        reset_robot(robot, init_pos, reset_pose)
+        time.sleep(DELAY)    
+        with open('calib_rh_short.csv', mode='r') as csvfile:
             csvreader = csv.reader(csvfile)
             for row in csvreader:  # Iterate through each row in the CSV file
                 row = array(row, dtype=float)
                 reset_robot(robot, init_pos, row)
-                check_execution(robot, init_pos, row, 3, False)
-                actual_position = get_real_joints(robot, joint_names)
-                for i in range(len(joint_indices)):
-                    p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
-                spin_simulation(1)   
-
-                print("{}.{} ".format(index+1, calib_pose[index]))
+                create_marker(marker_position[index])
+                #check_execution(robot, init_pos, row, 3, False)
                 time.sleep(DELAY)
-                #input("Press Enter to continue...")
+                set_sim_robot(robot, robot_id, joint_names, joint_indices)
+                sim_pos = p.getLinkState(robot_id,10)
+                print("{}.{} error: {} ".format(index+1, calib_pose[index], array(marker_position[index]) - array(sim_pos[0])))
+                p.addUserDebugText(f"Calibrating {calib_pose[index]}",[.0, -0.3, .60], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
+                p.addUserDebugText(f"X,Y,Z error: {array(marker_position[index]) - array(sim_pos[0])}",[.0, -0.3, .55], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
+                results.append(tuple(array(marker_position[index]) - array(sim_pos[0])))
                 reset_robot(robot, init_pos, reset_pose)
                 time.sleep(DELAY)
+                set_sim_robot(robot, robot_id, joint_names, joint_indices)                
                 index += 1
+            
+        
+
+        print(results)
 
     else:
         processed_keys = set()
