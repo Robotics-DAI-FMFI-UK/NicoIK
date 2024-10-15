@@ -9,11 +9,12 @@ mode = 'calibrate' # anything else is exploratory mode
 
 SPEED = 0.05
 DELAY= 3
+REPEAT = 20
 
 reset_pose = [0, 0, 0, 40, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 40, 0, 50, 0, 0, -180, -180.0, -180, -180.0]
 
 
-marker_position = [[0.23,-0.267,0.055], #right lower touchscreen
+marker_positionr = [[0.23,-0.267,0.055], #right lower touchscreen
                 [0.30,-0.267,0.055], #right touchscreen edge 1
                 [0.36,-0.267,0.055], #right touchscreen edge 2
                 [0.465,-0.267,0.055], #right touchscreen edge 3
@@ -30,12 +31,30 @@ marker_position = [[0.23,-0.267,0.055], #right lower touchscreen
                 [0.25,-0.003,0.055], #mark sign middle low touchscreen
                 ]
 
+marker_position = [[0.23,0.267,0.055], #left lower touchscreen
+                [0.33,0.267,0.055], #left touchscreen edge 1
+                [0.43,0.267,0.055], #left touchscreen edge 2
+                [0.23,0.167,0.055], #botton touchscreen edge 1
+                [0.23,0.067,0.055], #bottom touchscreen edge 2
+                [0.23,0.0,0.055], #middle lower touchscreen
+                [0.23,-0.133,0.055], #bottom touchscreen edge 3
+                [0.06,-0.075,0.235], #top right front body corner
+                [0.06,-0.075,0.055], #bottom right front body corner
+                [0.16,0.105,0.055], #left inner hole corner
+                [0.16,-0.105,0.055], #right inner hole corner
+                [0.25,-0.003,0.055], #mark sign middle low touchscreen
+        ]
 #calib_pose = ['Resting','Touchscreen corner','Touchscreen center','Left body','Left thumb','Right body','Eyes','Ears','Middlepoint','Boh arms',
 #                'Right eye','Top head','Left eye','Left body','LF-right eye','LF-left eye','LF-right shoulder','LF-right thumb','LF-right index',]
 
-calib_pose = ['right lower touchscreen','right touchscreen edge 1','right touchscreen edge 2','right touchscreen edge 3','touchscreen place 1',
+calib_poser = ['right lower touchscreen','right touchscreen edge 1','right touchscreen edge 2','right touchscreen edge 3','touchscreen place 1',
             'touchscreen place 1','middle lower touchscreen','top left front body corner','left eye','nose','right eye','right head','top head',
                 'Right eye','Top head','Left eye','Left body','LF-right eye','LF-left eye','LF-right shoulder','LF-right thumb','LF-right index',]
+
+calib_pose = ['left lower touchscreen','left touchscreen edge 1','left touchscreen edge 2','bottom touchscreen edge 1','bottom touchscreen edge ',
+            'middle lower touchscreen','bottom touchscreen edge 3', 'top right body corner',
+            'bottom right body corner', 'left inner hole corner','right inner hole corner','mark sign middle low touchscreen']
+
 
 init_pos = {  # standard position
     'head_z': 0.0,
@@ -234,26 +253,35 @@ def main():
     if mode ==  'calibrate':
         reset_robot(robot, init_pos, reset_pose)
         time.sleep(DELAY)    
-        with open('calib_rh_short.csv', mode='r') as csvfile:
+        with open('calib_lh_short.csv', mode='r') as csvfile:
             csvreader = csv.reader(csvfile)
             for row in csvreader:  # Iterate through each row in the CSV file
-                row = array(row, dtype=float)
-                reset_robot(robot, init_pos, row)
-                create_marker(marker_position[index])
-                #check_execution(robot, init_pos, row, 3, False)
-                time.sleep(DELAY)
-                set_sim_robot(robot, robot_id, joint_names, joint_indices)
-                sim_pos = p.getLinkState(robot_id,10)
-                print("{}.{} error: {} ".format(index+1, calib_pose[index], array(marker_position[index]) - array(sim_pos[0])))
-                p.addUserDebugText(f"Calibrating {calib_pose[index]}",[.0, -0.3, .60], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
-                p.addUserDebugText(f"X,Y,Z error: {array(marker_position[index]) - array(sim_pos[0])}",[.0, -0.3, .55], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
-                results.append(tuple(array(marker_position[index]) - array(sim_pos[0])))
-                reset_robot(robot, init_pos, reset_pose)
-                time.sleep(DELAY)
-                set_sim_robot(robot, robot_id, joint_names, joint_indices)                
+                for iter in range(REPEAT):
+                
+                    row = array(row, dtype=float)
+                    reset_robot(robot, init_pos, row)
+                    create_marker(marker_position[index])
+                    #check_execution(robot, init_pos, row, 3, False)
+                    time.sleep(DELAY)
+                    set_sim_robot(robot, robot_id, joint_names, joint_indices)
+                    #sim_pos = p.getLinkState(robot_id,10) # right end effector
+                    sim_pos = p.getLinkState(robot_id,20) # left end effector
+                    print("{}.{} error: {} ".format(index+1, calib_pose[index], array(marker_position[index]) - array(sim_pos[0])))
+                    p.addUserDebugText(f"Calibrating {calib_pose[index]}",[.0, -0.3, .60], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
+                    p.addUserDebugText(f"X,Y,Z error: {array(marker_position[index]) - array(sim_pos[0])}",[.0, -0.3, .55], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
+                    results.append(tuple(array(marker_position[index]) - array(sim_pos[0])))
+                    reset_robot(robot, init_pos, reset_pose)
+                    time.sleep(DELAY)
+                    set_sim_robot(robot, robot_id, joint_names, joint_indices)                
                 index += 1
             
-        
+        with open('lhcalib_output.csv', 'w', newline='') as csvoutfile:
+            # Create a csv.writer object for this file
+            csvwriter = csv.writer(csvoutfile)
+    
+            # Iterate over the results, writing each step as a row in the CSV file
+            for step in results:
+                csvwriter.writerow(step)
 
         print(results)
 
@@ -263,7 +291,7 @@ def main():
             actual_position = get_real_joints(robot, joint_names)
             for i in range(len(joint_indices)):
                 p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(joint_names[i],actual_position[i]))
-            print("Actual position: ", actual_position,  end='\r')
+            #print("Actual position: ", actual_position,  end='\r')
             keypress = p.getKeyboardEvents()
             if ord('d') in keypress:
                 robot.disableTorqueAll()

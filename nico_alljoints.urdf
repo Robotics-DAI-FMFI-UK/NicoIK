@@ -292,7 +292,7 @@
     	<visual>
       		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
       		<geometry>
-        		<sphere radius="0.005s"/>
+        		<sphere radius="0.007"/>
       		</geometry>
     	</visual>
   	</link>
@@ -563,19 +563,19 @@
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-.78" upper="0.78" velocity="1"/>
 	</joint>
-    <!--link name="endeffector">
+    <link name="endeffectol">
     	<visual>
       		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
       		<geometry>
-        		<sphere radius="0.01"/>
+        		<sphere radius="0.007"/>
       		</geometry>
     	</visual>
   	</link>
-	<joint name="endeffector_joint" type="fixed">
-    	<parent link="gripper"/>
-    	<child link="endeffector"/>
+	<joint name="endeffectol_joint" type="fixed">
+    	<parent link="left_palm"/>
+    	<child link="endeffectol"/>
     	<origin rpy="0 0 0" xyz="0.00 -0.02 -0.11"/>
-	</joint-->
+	</joint>
 	<link name="l_middlefinger">
 		<visual>
 			<geometry>
