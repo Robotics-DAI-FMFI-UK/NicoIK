@@ -1,0 +1,108 @@
+{
+  "controllers": {
+    "all_controller": {
+      "sync_read": false,
+      "attached_motors": [
+        "head",
+        "arms"
+      ],
+      "port": "auto"
+    }
+  },
+  "motorgroups": {
+    "head": [
+      "head_z",
+      "head_y"
+    ],
+
+    "r_arm": [
+      "r_shoulder_z",
+      "r_shoulder_y",
+      "r_arm_x",
+      "r_elbow_y"
+    ],
+
+    "l_arm": [
+      "l_shoulder_z",
+      "l_shoulder_y",
+      "l_arm_x",
+      "l_elbow_y"
+    ],
+    "arms": [
+      "l_arm",
+      "r_arm"
+    ]
+  },
+  "motors": {
+    "head_z": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 19,
+      "angle_limit": [-90,90],
+      "orientation": "direct"
+    },
+    "head_y": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 20,
+      "angle_limit": [-50,25],
+      "orientation": "direct"
+    },
+    "r_shoulder_z": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 21,
+      "angle_limit": [-25,80],
+      "orientation": "direct"
+    },
+    "r_shoulder_y": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 1,
+      "angle_limit": [-30,180],
+      "orientation": "direct"
+    },
+    "r_arm_x": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 3,
+      "angle_limit": [-5,70],
+      "orientation": "direct"
+    },
+    "r_elbow_y": {
+      "offset": -136,
+      "type": "MX-64",
+      "id": 5,
+      "angle_limit": [-86,45],
+      "orientation": "direct"
+    },
+    "l_shoulder_z": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 22,
+      "angle_limit": [-80,25],
+      "orientation": "indirect"
+    },
+    "l_shoulder_y": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 2,
+      "angle_limit": [-180,30],
+      "orientation": "indirect"
+    },
+    "l_arm_x": {
+      "offset": 0.0,
+      "type": "MX-64",
+      "id": 4,
+      "angle_limit": [-70,5],
+      "orientation": "indirect"
+    },
+    "l_elbow_y": {
+      "offset": -136,
+      "type": "MX-64",
+      "id": 6,
+      "angle_limit": [-45,86],
+      "orientation": "indirect"
+    }
+  }
+}
