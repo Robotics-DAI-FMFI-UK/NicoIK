@@ -56,7 +56,7 @@
 			<origin rpy="0 0 0" xyz="0 0.000266 0.050352"/>
 		</inertial>
 	</link>
-	<joint name="head_z_rjoint" type="fixed">
+	<joint name="head_z_rjoint" type="revolute">
 		<parent link="torso"/>
 		<child link="neck"/>
 		<origin rpy="0 0 0" xyz="-0.025 0.005 0.23"/>
@@ -85,9 +85,29 @@
 			<origin rpy="0 0 0" xyz="0.01525 -0.023771 0.09423"/>
 		</inertial>
 	</link>
-	<joint name="head_y_rjoint" type="fixed">
+	<joint name="head_y_rjoint" type="revolute">
 		<parent link="neck"/>
 		<child link="head"/>
+		<origin rpy="0 0 0" xyz="0 0.0 0.105"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
+	</joint>
+    <link name="eyeffector">
+    	<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      		<geometry>
+        		<cylinder radius=".02" length="0.5"/>
+      		</geometry>
+    	</visual>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+  	</link>
+    <joint name="eyeffector_joint" type="fixed">
+		<parent link="head"/>
+		<child link="eyeffector"/>
 		<origin rpy="0 0 0" xyz="0 0.0 0.105"/>
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
@@ -360,12 +380,12 @@
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint-->
-	<joint name="r_indexfinger_x" type="fixed">
+	<joint name="r_indexfinger_x" type="revolute">
 		<parent link="right_palm"/>
 		<child link="gripper"/>
 		<origin rpy="0 -1 0" xyz="0.00 -0.02 -0.06"/>
 		<axis xyz="0 1 0"/>
-		<!--<limit effort="30" lower="-2.57" upper="0" velocity="1"/>-->
+		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
 	<link name="endeffector">
     	<visual>
