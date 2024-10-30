@@ -5,7 +5,7 @@ import argparse
 import os
 import csv
 
-mode = 'calibrate'  # anything else is exploratory mode
+mode = 'calibrgate'  # anything else is exploratory mode
 
 SPEED = 0.05
 DELAY = 3
@@ -281,7 +281,9 @@ def main():
                 break
             keypress.clear()
             spin_simulation(1)
-
+            all_position = get_real_joints(robot, init_pos.keys())
+            p.addUserDebugText(f"P: {all_position}", [.0, -0.332, .55], textSize=2, lifeTime=0.05,
+                                       textColorRGB=[1, 0, 0])
     p.disconnect()
 
 
