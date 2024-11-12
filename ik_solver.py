@@ -21,28 +21,15 @@ DECIMALS = 10
 
 
 init_pos = {  # standard position
-    'l_shoulder_z': -24.0,
-    'l_shoulder_y': 13.0,
-    'l_arm_x': 0.0,
-    'l_elbow_y': 104.0,
-    'l_wrist_z': -4.0,
-    'l_wrist_x': -55.0,
-    'l_thumb_z': -62.0,
-    'l_thumb_x': -180.0,
-    'l_indexfinger_x': -170.0,
-    'l_middlefingers_x': -180.0,
-    'r_shoulder_z': -25,
-    'r_shoulder_y': 84,
-    'r_arm_x': 47,
-    'r_elbow_y': 94,
-    'r_wrist_z': -59,
-    'r_wrist_x': 114,
-    'r_thumb_z': -1,
-    'r_thumb_x': 44,
-    'r_indexfinger_x': -90,
-    'r_middlefingers_x': 38.0,
-    'head_z': 0.0,
-    'head_y': 0.0
+    'arm_right_1_rjoint': 0,
+    'arm_right_2_rjoint': 0.0,
+    'arm_right_3_rjoint': 0.0,
+    'arm_right_4_rjoint': 0.0,
+    'arm_right_5_rjoint': 0.0,
+    'arm_right_6_rjoint': 0.0,
+    'arm_right_7_rjoint': 0.0,
+    'gripper_right_right_finger_gjoint': 0.0,
+    'gripper_right_left_finger_gjoint': 0.0
 }
 
 def nicodeg2rad(nicojoints, nicodegrees):
@@ -308,7 +295,7 @@ def main():
         actual_position = get_real_joints(robot, actuated_joints)
     if not arg_dict["initial"]:
         for i in range(len(joint_indices)):
-            p.resetJointState(robot_id, joint_indices[i], nicodeg2rad(actuated_joints[i], actuated_initpos[i]))
+            p.resetJointState(robot_id, joint_indices[i], actuated_initpos[i])
             time.sleep(0.2)
     #spin_simulation(50)
 
