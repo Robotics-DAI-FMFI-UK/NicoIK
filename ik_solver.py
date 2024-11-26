@@ -284,16 +284,16 @@ def main():
 
         robot_id = p.loadURDF("./nico_upper_rh6d_r.urdf", [0, 0, 0])
     # Create table mesh
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.3, .45, 0.02],
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
                                                                rgbaColor=[0.6, 0.6, 0.6, 1]),
-                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.3, .45, 0.02]),
-                      baseMass=0, basePosition=[0.27, 0, -0.005])
+                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025]),
+                      baseMass=0, basePosition=[0.26, 0, 0.029])
     # Create tablet mesh
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.16, .26, 0.01],
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.165, .267, 0.02],
                                                                rgbaColor=[0, 0, 0.0, 1]),
                       baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
-                                                                     halfExtents=[.16, .26, 0.01]), baseMass=0,
-                      basePosition=[0.41, 0, 0.008])
+                                                                     halfExtents=[.165, .267, 0.02]), baseMass=0,
+                      basePosition=[0.395, 0, 0.036])
 
     num_joints = p.getNumJoints(robot_id)
     joints_limits, joints_ranges, joints_rest_poses, end_effector_index, joint_names, link_names, joint_indices = get_joints_limits(
