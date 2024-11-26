@@ -226,9 +226,9 @@
 	<joint name="r_elbow_y" type="revolute">
 		<parent link="right_upper_arm"/>
 		<child link="right_lower_arm"/>
-		<origin rpy="0 -1.5707 0" xyz="0.0 0 -0.17"/>
+		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-0.6981" upper="1.5707" velocity="1"/>
+		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
 	</joint>
 	<link name="right_wrist">
 		<visual>
@@ -288,19 +288,19 @@
 		<axis xyz="0 -1 0"/>
 		<limit effort="30" lower="-0.785398163" upper="0.785398163" velocity="1"/>
 	</joint>
-	<!--link name="endeffector">
+	<link name="endeffector">
     	<visual>
       		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
       		<geometry>
-        		<sphere radius="0.01"/>
+        		<sphere radius="0.007"/>
       		</geometry>
     	</visual>
   	</link>
 	<joint name="endeffector_joint" type="fixed">
-    	<parent link="gripper"/>
+    	<parent link="right_palm"/>
     	<child link="endeffector"/>
     	<origin rpy="0 0 0" xyz="0.00 -0.02 -0.11"/>
-	</joint-->
+	</joint>
 	<link name="r_middlefinger">
 		<visual>
 			<geometry>
@@ -501,9 +501,9 @@
 	<joint name="l_elbow_y" type="revolute">
 		<parent link="left_upper_arm"/>
 		<child link="left_lower_arm"/>
-		<origin rpy="0 -1.5707 0" xyz="0.0 0 -0.17"/>
+		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="-0.6981" upper="1.5707" velocity="1"/>
+		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
 	</joint>
 	<link name="left_wrist">
 		<visual>
@@ -563,19 +563,19 @@
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-.78" upper="0.78" velocity="1"/>
 	</joint>
-    <!--link name="endeffector">
+    <link name="endeffectol">
     	<visual>
       		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
       		<geometry>
-        		<sphere radius="0.01"/>
+        		<sphere radius="0.007"/>
       		</geometry>
     	</visual>
   	</link>
-	<joint name="endeffector_joint" type="fixed">
-    	<parent link="gripper"/>
-    	<child link="endeffector"/>
+	<joint name="endeffectol_joint" type="fixed">
+    	<parent link="left_palm"/>
+    	<child link="endeffectol"/>
     	<origin rpy="0 0 0" xyz="0.00 -0.02 -0.11"/>
-	</joint-->
+	</joint>
 	<link name="l_middlefinger">
 		<visual>
 			<geometry>
