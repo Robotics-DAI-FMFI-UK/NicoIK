@@ -8,8 +8,9 @@ import csv
 mode = 'calibrate' # anything else is exploratory mode
 
 SPEED = 0.05
-DELAY= 3
-REPEAT = 20
+DELAY = 3
+REPEAT = 1
+SAFE_ANGLE_OFFSET = 10
 
 reset_pose = [0, 0, 0, 40, 0, 50, 0,0, -180, -180, -180.0, -180.0, 0, 40, 0, 50, 0, 0, -180, -180.0, -180, -180.0]
 
@@ -127,10 +128,32 @@ def rad2nicodeg(nicojoints, rads):
 set_printoptions(precision=3)
 set_printoptions(suppress=True)
 
+def safe_angle(robot, joint_name, angle):
+    angle_upper_limit, angle_lower_limit = robot.getAngleUpperLimit(joint_name), robot.getAngleLowerLimit(joint_name)
+
+    if angle_upper_limit < angle_lower_limit:
+        angle_upper_limit, angle_lower_limit = angle_lower_limit, angle_upper_limit
+
+    # print("Angle: ", angle, "Upper limit: ", angle_upper_limit, "Lower limit: ", angle_lower_limit)
+    
+    if angle > angle_upper_limit - SAFE_ANGLE_OFFSET:
+        angle = angle_upper_limit - SAFE_ANGLE_OFFSET
+    elif angle < angle_lower_limit + SAFE_ANGLE_OFFSET:
+        angle = angle_lower_limit + SAFE_ANGLE_OFFSET
+
+    # print("After: ", angle2, "Upper limit: ", angle_upper_limit, "Lower limit: ", angle_lower_limit)
+
+    return angle
+
 def reset_robot(robot, init_pos, values):
     index=0
     for k in init_pos.keys():
-        robot.setAngle(k, float(values[index]), SPEED)
+        angle = float(values[index])
+
+        if k == 'r_middlefingers_x' or k == 'l_middlefingers_x':
+            angle = 150.0
+
+        robot.setAngle(k, angle, SPEED)
         index += 1
     return robot
 
@@ -244,8 +267,9 @@ def main():
     try:
         robot = Motion(motorConfig=motorConfig)
         print('Robot initialized')
-    except:
+    except Exception as e:
         print('Motors are not operational')
+        print(e)
         exit()
         # robot = init_robot()
     index = 0
@@ -253,29 +277,29 @@ def main():
     if mode ==  'calibrate':
         reset_robot(robot, init_pos, reset_pose)
         time.sleep(DELAY)    
-        with open('calib_lh_short.csv', mode='r') as csvfile:
+        with open('calib_rh_short.csv', mode='r') as csvfile:
             csvreader = csv.reader(csvfile)
             for row in csvreader:  # Iterate through each row in the CSV file
                 for iter in range(REPEAT):
                 
                     row = array(row, dtype=float)
                     reset_robot(robot, init_pos, row)
-                    create_marker(marker_position[index])
+                    create_marker(marker_positionr[index])
                     #check_execution(robot, init_pos, row, 3, False)
                     time.sleep(DELAY)
                     set_sim_robot(robot, robot_id, joint_names, joint_indices)
-                    #sim_pos = p.getLinkState(robot_id,10) # right end effector
-                    sim_pos = p.getLinkState(robot_id,20) # left end effector
-                    print("{}.{} error: {} ".format(index+1, calib_pose[index], array(marker_position[index]) - array(sim_pos[0])))
-                    p.addUserDebugText(f"Calibrating {calib_pose[index]}",[.0, -0.3, .60], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
-                    p.addUserDebugText(f"X,Y,Z error: {array(marker_position[index]) - array(sim_pos[0])}",[.0, -0.3, .55], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
-                    results.append(tuple(array(marker_position[index]) - array(sim_pos[0])))
+                    sim_pos = p.getLinkState(robot_id,10) # right end effector
+                    # sim_pos = p.getLinkState(robot_id,20) # left end effector
+                    print("{}.{} error: {} ".format(index+1, calib_poser[index], array(marker_positionr[index]) - array(sim_pos[0])))
+                    p.addUserDebugText(f"Calibrating {calib_poser[index]}",[.0, -0.3, .60], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
+                    p.addUserDebugText(f"X,Y,Z error: {array(marker_positionr[index]) - array(sim_pos[0])}",[.0, -0.3, .55], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
+                    results.append(tuple(array(marker_positionr[index]) - array(sim_pos[0])))
                     reset_robot(robot, init_pos, reset_pose)
                     time.sleep(DELAY)
                     set_sim_robot(robot, robot_id, joint_names, joint_indices)                
                 index += 1
             
-        with open('lhcalib_output.csv', 'w', newline='') as csvoutfile:
+        with open('rhcalib_output.csv', 'w', newline='') as csvoutfile:
             # Create a csv.writer object for this file
             csvwriter = csv.writer(csvoutfile)
     
