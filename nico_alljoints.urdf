@@ -61,7 +61,7 @@
 		<child link="neck"/>
 		<origin rpy="0 0 0" xyz="-0.025 0.000 0.23"/>
 		<axis xyz="0 0 1"/>
-		<limit effort="30" lower="-1.5708" upper="1.5708" velocity="1"/>
+		<limit effort="30" lower="-1.5707" upper="1.5707" velocity="1"/>
 	</joint>
 	<link name="head">
 		<visual>
@@ -226,9 +226,9 @@
 	<joint name="r_elbow_y" type="revolute">
 		<parent link="right_upper_arm"/>
 		<child link="right_lower_arm"/>
-		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
+		<origin rpy="0 -1.5707 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
+		<limit effort="30" lower="-0.6981" upper="1.5707" velocity="1"/>
 	</joint>
 	<link name="right_wrist">
 		<visual>
@@ -255,9 +255,9 @@
 	<joint name="r_wrist_z" type="revolute">
 		<parent link="right_lower_arm"/>
 		<child link="right_wrist"/>
-		<origin rpy="0 0 1.57" xyz="0 0 -0.105"/>
+		<origin rpy="0 0 1.5707" xyz="0 0 -0.105"/>
 		<axis xyz="0 0 1"/>
-		<limit effort="30" lower="-1.57079633" upper="1.57079633" velocity="1"/>
+		<limit effort="30" lower="-1.5707" upper="1.5707" velocity="1"/>
 	</joint>
 	<link name="right_palm"> <!--gripper-->
 		<visual>
@@ -501,9 +501,9 @@
 	<joint name="l_elbow_y" type="revolute">
 		<parent link="left_upper_arm"/>
 		<child link="left_lower_arm"/>
-		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
+		<origin rpy="0 -1.5707 0" xyz="0.0 0 -0.17"/>
 		<axis xyz="0 1 0"/>
-		<limit effort="30" lower="0.8726" upper="3.1416" velocity="1"/>
+		<limit effort="30" lower="-0.6981" upper="1.5707" velocity="1"/>
 	</joint>
 	<link name="left_wrist">
 		<visual>
@@ -530,9 +530,9 @@
 	<joint name="l_wrist_z" type="revolute">
 		<parent link="left_lower_arm"/>
 		<child link="left_wrist"/>
-		<origin rpy="0 0 1.57" xyz="0 0 -0.105"/>
+		<origin rpy="0 0 1.5707" xyz="0 0 -0.105"/>
 		<axis xyz="0 0 -1"/>
-		<limit effort="30" lower="-1.571" upper="1.571" velocity="1"/>
+		<limit effort="30" lower="-1.5707" upper="1.5707" velocity="1"/>
 	</joint>
 	<link name="left_palm"> <!--gripper-->
 		<visual>
