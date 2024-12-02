@@ -912,6 +912,13 @@
       </geometry>
       <material name="Black"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 3.1415" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="tiago/gripper_finger_link.stl" scale="-1 -1 1"/>
+      </geometry>
+      <material name="Black"/>
+    </collision>
   </link>
   <joint name="gripper_right_right_finger_gjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
@@ -933,6 +940,13 @@
       </geometry>
       <material name="Black"/>
     </visual>
+    <collision>
+      <origin rpy="0 0 3.1415" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="tiago/gripper_finger_link.stl"/>
+      </geometry>
+      <material name="Black"/>
+    </collision>
   </link>
   <joint name="gripper_right_left_finger_gjoint" type="prismatic">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
