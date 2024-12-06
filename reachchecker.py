@@ -8,17 +8,15 @@ import os
 from sim_height_calculation import calculate_z
 import calibration_matrices
 
-# from TouchAgent import TouchAgent
-
-ROBOT = "tiago_dual_mygym.urdf"
-INITPOS = [0.2, -0.7, 1.2]
-OUTPUT = 'tiago_fixed_topgrasp_fixed'
+# Graspchecker config
+#GOALORI = [0, 0, 1]
+EEACCURACY = 0.05
+JOINTACCURACY = 0.05
 # Set speed to reseti to initial position
 RESET_SPEED = 0.02
 # Acccuracy (vector distance) to consider the target positon reached
 ACCURACY = 3
-EEACCURACY = 0.1
-JOINTACCURACY = 6
+
 
 # Delay between simulation steps
 SIM_STEP_DELAY = 0.01
@@ -193,12 +191,18 @@ def write_line(file, joint_angles, duration, end_effector_coords):
     file.write(" " * (offset2 - length))
     file.write("%s\n" % ','.join(list(map(to_formatted_str, round(end_effector_coords, DECIMALS)))))
 
+def calculate_ik_position(robot_id, end_effector_index, target_position, max_iterations, residual_threshold):
+    return p.calculateInverseKinematics(robot_id, end_effector_index, target_position,
+                                        maxNumIterations=max_iterations, residualThreshold=residual_threshold)
 
+def calculate_ik_orientation(robot_id, end_effector_index, target_position, target_orientation, max_iterations, residual_threshold):
+    return p.calculateInverseKinematics(robot_id, end_effector_index, target_position, targetOrientation=target_orientation,
+                                        maxNumIterations=max_iterations, residualThreshold=residual_threshold)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_true", help="Show detail informtion about robot position in terminal")
     parser.add_argument("-p", "--position", nargs=3, type=float, help="Target position for the robot end effector as a list of three floats.")
-    parser.add_argument("-o", "--orientation", nargs=3, default = [0,0,1], type=float, help="Target orientation for the robot end effector as a list of four floats.")
+    parser.add_argument("-o", "--orientation", nargs=3, type=float, help="Target orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-j", "--joints", nargs=6, type=float, help="Target joint angles for the robot end effector as a list of six floats.")
     parser.add_argument("-rr", "--real_robot", action="store_true", help="If set, execute action on real robot.")
     parser.add_argument("-a", "--animate", action="store_true", help="If set, the animation of motion is shown.")
@@ -207,7 +211,10 @@ def main():
     parser.add_argument("-r", "--robot", type=str, default="tiago_dual_mygym.urdf", help="Duration of movement in si/real robot")
     parser.add_argument("-l", "--left", action="store_true", help="If set, use left hand IK")
     parser.add_argument("-i", "--initial", action="store_true", help="If set, reset the robot to the initial position after each postion")
+    parser.add_argument("-ip", "--iposition", nargs=3, default = [-0.2, -0.5, 1.2], type=float, help="Initial position for the robot end effector as a list of three floats.")
+    parser.add_argument("-io", "--iorientation", nargs=3, type=float, help="Initial orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-t", "--trajectory", type=str, help="If set, execute trajectory positions from the text file with corresponding path")
+    parser.add_argument("-of", "--output_file", type=str,  default = 'test', help="If set, execute trajectory positions from the text file with corresponding path")
     parser.add_argument("-c", "--calibration", action="store_true", help="If set, execute calibration positions")
     parser.add_argument("-e", "--experiment", action="store_true", help="If set, execute experiments positions")
     parser.add_argument("-s", "--speed", type=float, default=1, help="Speed of arm movement in simulator")
@@ -233,10 +240,8 @@ def main():
     floor = p.loadURDF("./plane.urdf")
     floortex = p.loadTexture("./textures/parquet1.jpg")
     p.changeVisualShape(floor, -1, textureUniqueId=floortex)
-    if arg_dict["left"]:
-        robot_id = p.loadURDF("./nico_upper_rh6d_l.urdf", [0, 0, 0])
-    else:
-        robot_id = p.loadURDF("./tiago_dual_mygym.urdf", [0, 0, 0], flags=p.URDF_USE_SELF_COLLISION)
+
+    robot_id = p.loadURDF(arg_dict["robot"], [0, 0, 0], flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS)
     
     table_id = p.loadURDF("./table_tiago.urdf",basePosition = [0.0, 0.0, 0.0],baseOrientation = p.getQuaternionFromEuler([0.0, 0, -pi/2]), useFixedBase=True)
 
@@ -269,10 +274,7 @@ def main():
         time_res = check_execution(robot, init_pos.keys(), list(init_pos.values()), 10, arg_dict["verbose"])
         print('Robot reset in {:.2f} seconds.'.format(time_res))
         actual_position = get_real_joints(robot, actuated_joints)
-    if not arg_dict["initial"]:
-        for i in range(len(joint_indices)):
-            p.resetJointState(robot_id, joint_indices[i], actuated_initpos[i])
-            time.sleep(0.2)
+
     #spin_simulation(50)
 
     # IK paramenters
@@ -303,7 +305,6 @@ def main():
 
     movement_duration = arg_dict["duration"]
 
-    targetori = p.getQuaternionFromEuler(arg_dict["orientation"])
     # if arg_dict["file"]:
     #    open(arg_dict["file"]) as data
 
@@ -339,8 +340,17 @@ def main():
 
     elif arg_dict["calibration"]:
         grid = calibration_matrices.TargetGridTiagoTable()
+    
+    if arg_dict["iorientation"]:
+        ik_init = calculate_ik_orientation(robot_id, end_effector_index, arg_dict["iposition"],p.getQuaternionFromEuler(arg_dict["iorientation"]), max_iterations, residual_threshold)
+    else:
+        ik_init = calculate_ik_position(robot_id, end_effector_index, arg_dict["iposition"], max_iterations, residual_threshold)
+    if not arg_dict["initial"]:
+        for i in range(len(joint_indices)):
+            p.resetJointState(robot_id, joint_indices[i], ik_init[i])
+            time.sleep(0.2)
     try:
-        for i in range(500):
+        for i in range(1000):
             # ik_solution = tuple()
             # while True:
             # Target position
@@ -348,6 +358,11 @@ def main():
                 target_position = arg_dict["position"]
             elif arg_dict["calibration"]:
                 target_position = next(grid)
+                if i ==0:
+                    target_pos_relative = array([0,0,0])
+                    target_first = target_position
+                else:
+                    target_pos_relative = array(target_position) - array(target_first)
                 #print(target_position)
             elif arg_dict["experiment"]:
                 target_position = calibration_matrices.target_experiment(i)
@@ -379,9 +394,9 @@ def main():
                 
 
                 resetsim_pos = []
-                #print(joint_indices)
+                
                 for j in range(len(joint_indices)):
-                    p.resetJointState(robot_id, joint_indices[j],actuated_initpos[j])
+                    p.resetJointState(robot_id, joint_indices[j],ik_init[j])
                 for j in range(len(joint_indices)):
                         resetsim_pos.append(p.getJointState(robot_id, joint_indices[j])[0])
                 time.sleep(0.1)
@@ -389,7 +404,7 @@ def main():
                 nicodeg_resetsim_pos = resetsim_pos
                 
                 
-                simdifference = array(actuated_initpos) - array(nicodeg_resetsim_pos)
+                #simdifference = array(actuated_initpos) - array(nicodeg_resetsim_pos)
                 (x, y, z), (a, b, c, d), _, _, _, _ = p.getLinkState(robot_id, end_effector_index)
                 if not arg_dict["verbose"]:
                     print('Time init: 0s \n Error: {} \n Goal: {} \n Real: {} \n InitPos: {}'.format(
@@ -424,19 +439,19 @@ def main():
             # if not len(ik_solution):            # If we are reading trajectory from the file, we don't need to calculate
             #target_orientation = [-0.18901219284742923, -0.2983003154209216, 0.8705412315868658, 0.3427087347617619]
             if arg_dict["orientation"]:
-                ik_solution = p.calculateInverseKinematics(robot_id,
+                ik_solution = calculate_ik_orientation(robot_id,
                                                             end_effector_index,
                                                             target_position,
-                                                            targetOrientation=targetori,
-                                                            maxNumIterations=max_iterations,
-                                                        residualThreshold=residual_threshold)
+                                                            p.getQuaternionFromEuler(arg_dict["orientation"]),
+                                                            max_iterations,
+                                                            residual_threshold)
             
             else:
-                ik_solution = p.calculateInverseKinematics(robot_id,
+                ik_solution = calculate_ik_position(robot_id,
                                                             end_effector_index,
                                                             target_position,
-                                                            maxNumIterations=max_iterations,
-                                                        residualThreshold=residual_threshold)
+                                                            max_iterations,
+                                                            residual_threshold)
 
 
             trajectory = []
@@ -461,14 +476,15 @@ def main():
                 while not finished:
                     for j in range(len(joint_indices)):
                         state.append(p.getJointState(robot_id, joint_indices[j])[0])
+                    
                     #print(state)
-                    simdiff = rad2deg(array(ik_solution)) - rad2deg(array(state))
+                    
+                    simdiff = array(ik_solution) - array(state)
                     if arg_dict["verbose"]:
                         #CONVERT TO NICO DEGREES
                         nicodeg_pos = state
                         #print('SimNICO, Step: {}, JointDeg: {}'.format(step, ['{:.2f}'.format(pos) for pos in nicodeg_pos], end='\n'))
-                    #if linalg.norm(simdiff) <= 3:
-                    #    finished = True
+                    
 
                     # Saving trajectory points in lists for writing into file
                     if arg_dict["save_trajectory"]:
@@ -479,7 +495,11 @@ def main():
                     step += 1
                     last_state = state
                     state = []
-                    if step > 250:
+
+                    if linalg.norm(simdiff) <= JOINTACCURACY:
+                        finished = True
+
+                    if step > 350:
                         #failed += 1
                         #print('ANIMATION MODE FAILED - NEEDS DEBUGGGING')
                         
@@ -577,16 +597,19 @@ def main():
                 for j in range(len(joint_indices)):
                         state.append(p.getJointState(robot_id, joint_indices[j])[0])
                 last_state = state
+                simdiff = rad2deg(array(ik_solution)) - rad2deg(array(state))
                 state = []
                 toc = time.perf_counter()
                 
                 #spin_simulation(10)
         
             # Calculate IK solution error
-
+            
             (x, y, z), (a, b, c, d), _, _, _, _ = p.getLinkState(robot_id, end_effector_index)
+            
+            
             IKdiff = (array(target_position) - array([x, y, z]))
-            IKoridiff = (array (targetori) - array([a, b, c, d])) 
+            IKoridiff = (array (p.getQuaternionFromEuler(arg_dict["orientation"])) - array([a, b, c, d])) 
             # print('SimNico target_pos: {}'.format(target_position))
             #print('SimNico IK error: {}'.format(IKoridiff))
             p.createMultiBody(
@@ -597,7 +620,7 @@ def main():
             IKoristat.append(IKoridiff)
             #orierror.append([target_position,IKoridiff])
             IKjointstat.append(simdiff)
-            reacherror.append([target_position,IKdiff,IKoridiff,simdiff])
+            reacherror.append([target_pos_relative,IKdiff,IKoridiff,simdiff])
             #simdiff = rad2deg(array(ik_solution)) - rad2deg(array(last_state))
             #print('Cumulative  IK error: {}'.format(mean(IKstat, axis=0)), end='\r')
             meanposerror = mean(IKposstat, axis=0)
@@ -616,24 +639,24 @@ def main():
             #p.addUserDebugText(f"EE Orient: {p.getEulerFromQuaternion([a,b,c,d])}",[.0, -0.4, 1.55], textSize=1, lifeTime=2, textColorRGB=[1, 0, 0])
             #print([a,b,c,d])
             
+            print(f"Failed pos/ori/joint/total: {failpos} / {failori} / {failjoint} / {i+1}")
             time.sleep(0.1)
             #CONVERT TO NICO DEGREES
             
             nicodeg_ik = ik_solution
             if arg_dict["verbose"]:
                 #CONVERT TO NICO DEGREES
-                nicodeg_state = last_state
 
                 print('Time: {:.2f}s \n Error: {} \n Goal: {} \n Real: {} \n PosError: {} \n GoalPos: {} \n RealPos: {} \n OriError: {} \n GoalOri: {} \n RealOri: {} \n'.format((toc - tic),
                                                                         ['{:.2f}'.format(diff) for diff in simdiff],
-                                                                        ['{:.2f}'.format(goal) for goal in nicodeg_ik],
-                                                                        ['{:.2f}'.format(real) for real in nicodeg_state],
+                                                                        ['{:.2f}'.format(goal) for goal in ik_solution],
+                                                                        ['{:.2f}'.format(real) for real in last_state],
                                                                         ['{:.2f}'.format(posdiff) for posdiff in IKdiff],
                                                                         ['{:.2f}'.format(goalpos) for goalpos in target_position],
                                                                         ['{:.2f}'.format(realpos) for realpos in [x, y, z]],
-                                                                        ['{:.2f}'.format(posdiff) for posdiff in IKdiff],
-                                                                        ['{:.2f}'.format(goalpos) for goalpos in target_position],
-                                                                        ['{:.2f}'.format(realpos) for realpos in [x, y, z]]))
+                                                                        ['{:.2f}'.format(posdiff) for posdiff in IKoridiff],
+                                                                        ['{:.2f}'.format(goalori) for goalori in arg_dict["orientation"]],
+                                                                        ['{:.2f}'.format(realori) for realori in p.getEulerFromQuaternion([a, b, c, d])]))
                 
                 print (linalg.norm(simdiff))
                 print (linalg.norm(IKdiff))
@@ -683,7 +706,6 @@ def main():
                                                                         ['{:.2f}'.format(diff) for diff in difference],
                                                                         ['{:.2f}'.format(goal) for goal in targetdeg],
                                                                         ['{:.2f}'.format(real) for real in final_pos]))
-                    input('Compare real and sim position visually')
                 JointGstat.append(difference)
                 TimeGstat.append(time_ex)
     except StopIteration:  
@@ -737,7 +759,7 @@ def main():
     #input('Press enter to exit')
     # Create DataFrames from the
     
-    filepath = './reachability/' + OUTPUT
+    filepath = './reachability/' + arg_dict['output_file']
 
     filename = filepath + '_summary.txt'
     with open(filename, 'w') as f:
@@ -751,6 +773,7 @@ def main():
         f.write(str(failpos) + "/" + str(failori) + "/" + str(failjoint) + "/" + str(i))
     filename = filepath + '_detail.txt'
     with open(filename, 'w') as f:
+        f.write("Position, Position error, Orientation error, Joint error\n")
         for targetP in reacherror:
             rounded_targetP = [round(item, 3) for item in targetP]
             f.write("%s\n" % ', '.join(map(str, rounded_targetP)))

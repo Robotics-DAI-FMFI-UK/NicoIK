@@ -70,8 +70,8 @@ class TargetGrid:
 
 class TargetGridTiagoTable:
     def __init__(self):
-        self.x_start, self.x_end, self.x_step = 0.2, 0.4, 0.1
-        self.y_start, self.y_end, self.y_step = -0.7, -0.7, 0.2
+        self.x_start, self.x_end, self.x_step = 0.2, 0.8, 0.1
+        self.y_start, self.y_end, self.y_step = -0.7, 0.7, 0.1
         self.z_start, self.z_end, self.z_step = 0.77, 0.77, 0.2
         
         self.x = self.x_start - self.x_step  # Start before the first value

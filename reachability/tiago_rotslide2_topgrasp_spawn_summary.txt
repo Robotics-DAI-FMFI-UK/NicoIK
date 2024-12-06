@@ -1,0 +1,4 @@
+Meanposerror (x,y,z): [ 0.001 -0.    -0.001]
+Meanorierror (a,b,c,d): [ 0.  0. -0.  0.]
+Meanjointerror (joints): [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+Failed P/O/J/A: 1/0/0/121
