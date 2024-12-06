@@ -1,0 +1,36 @@
+
+<?xml version="1.0" ?>
+<robot name="table_nico">
+  <link name="table">
+    <visual>
+      <origin rpy="0 0 0" xyz="0. 0.26 .029"/>
+      <geometry>
+				<box size="0.9 .6 0.05"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="0.8 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
+      <geometry>
+	 	    <box size="1.4 0.7 0.02"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.395 0.0 .036"/>
+      <geometry>
+				<box size="0.330 .534 0.04"/>
+      </geometry>
+       <material name="framemat0">
+        <color rgba="0.8 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
+      <geometry>
+	 	    <box size="1.4 0.7 0.02"/>
+      </geometry>
+    </collision>
+    </link>
+</robot>

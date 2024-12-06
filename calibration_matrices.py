@@ -68,12 +68,18 @@ class TargetGrid:
 
         return round(self.x, 2), round(self.y, 2), round(self.z, 3)
 
-class TargetGridTiagoTable:
-    def __init__(self):
-        self.x_start, self.x_end, self.x_step = 0.2, 0.8, 0.1
-        self.y_start, self.y_end, self.y_step = -0.7, 0.7, 0.1
-        self.z_start, self.z_end, self.z_step = 0.77, 0.77, 0.2
-        
+class TargetGridTiagoTable():
+    def __init__(self, x_start, x_end, x_step, y_start, y_end, y_step, z_start, z_end, z_step):
+        self.x_start = x_start
+        self.x_end = x_end
+        self.x_step = x_step
+        self.y_start = y_start
+        self.y_end = y_end
+        self.y_step = y_step
+        self.z_start = z_start
+        self.z_end = z_end
+        self.z_step = z_step
+
         self.x = self.x_start - self.x_step  # Start before the first value
         self.y = self.y_start
         self.z = self.z_start

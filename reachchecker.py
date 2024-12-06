@@ -203,19 +203,20 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="Show detail informtion about robot position in terminal")
     parser.add_argument("-p", "--position", nargs=3, type=float, help="Target position for the robot end effector as a list of three floats.")
     parser.add_argument("-o", "--orientation", nargs=3, type=float, help="Target orientation for the robot end effector as a list of four floats.")
-    parser.add_argument("-j", "--joints", nargs=6, type=float, help="Target joint angles for the robot end effector as a list of six floats.")
     parser.add_argument("-rr", "--real_robot", action="store_true", help="If set, execute action on real robot.")
     parser.add_argument("-a", "--animate", action="store_true", help="If set, the animation of motion is shown.")
     parser.add_argument("-g", "--gui", action="store_true", help="If set, turn the GUI on")
-    parser.add_argument("-f", "--file", type=str, help="Target position for the robot end effector as a list of three floats.")
+    parser.add_argument("-rp", "--robot_pos", nargs=3, default = [0,0,0], type=float, help="Target orientation for the robot end effector as a list of four floats.")
+    parser.add_argument("-ro", "--robot_ori", nargs=3, default = [0,0,0], type=float, help="Target orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-r", "--robot", type=str, default="tiago_dual_mygym.urdf", help="Duration of movement in si/real robot")
+    parser.add_argument("-en", "--environment", type=str, default="table_tiago.urdf", help="Duration of movement in si/real robot")
     parser.add_argument("-l", "--left", action="store_true", help="If set, use left hand IK")
     parser.add_argument("-i", "--initial", action="store_true", help="If set, reset the robot to the initial position after each postion")
     parser.add_argument("-ip", "--iposition", nargs=3, default = [-0.2, -0.5, 1.2], type=float, help="Initial position for the robot end effector as a list of three floats.")
     parser.add_argument("-io", "--iorientation", nargs=3, type=float, help="Initial orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-t", "--trajectory", type=str, help="If set, execute trajectory positions from the text file with corresponding path")
     parser.add_argument("-of", "--output_file", type=str,  default = 'test', help="If set, execute trajectory positions from the text file with corresponding path")
-    parser.add_argument("-c", "--calibration", action="store_true", help="If set, execute calibration positions")
+    parser.add_argument("-c", "--calibration", type=str, default="TargetGridTiagoTable", help="Duration of movement in si/real robot")
     parser.add_argument("-e", "--experiment", action="store_true", help="If set, execute experiments positions")
     parser.add_argument("-s", "--speed", type=float, default=1, help="Speed of arm movement in simulator")
     parser.add_argument("-d", "--duration", type=float, default=2, help="Duration of movement in si/real robot")
@@ -241,9 +242,9 @@ def main():
     floortex = p.loadTexture("./textures/parquet1.jpg")
     p.changeVisualShape(floor, -1, textureUniqueId=floortex)
 
-    robot_id = p.loadURDF(arg_dict["robot"], [0, 0, 0], flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS)
+    robot_id = p.loadURDF(arg_dict["robot"], arg_dict["robot_pos"],p.getQuaternionFromEuler(arg_dict["robot_ori"]), flags=p.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS)
     
-    table_id = p.loadURDF("./table_tiago.urdf",basePosition = [0.0, 0.0, 0.0],baseOrientation = p.getQuaternionFromEuler([0.0, 0, -pi/2]), useFixedBase=True)
+    table_id = p.loadURDF(arg_dict["environment"],basePosition = [0,0,0], baseOrientation = p.getQuaternionFromEuler([0,0,-pi/2]), useFixedBase=True)
 
     tabletex = p.loadTexture("./textures/table.jpg")
 
@@ -339,7 +340,7 @@ def main():
             os.mkdir("statistics")
 
     elif arg_dict["calibration"]:
-        grid = calibration_matrices.TargetGridTiagoTable()
+        grid = calibration_matrices.TargetGridTiagoTable(0.2, 0.8, 0.3,-0.7, 0.7, 0.1,0.77, 0.77, 0.2)
     
     if arg_dict["iorientation"]:
         ik_init = calculate_ik_orientation(robot_id, end_effector_index, arg_dict["iposition"],p.getQuaternionFromEuler(arg_dict["iorientation"]), max_iterations, residual_threshold)

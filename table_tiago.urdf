@@ -1,6 +1,17 @@
 
 <?xml version="1.0" ?>
-<robot name="table">
+<robot name="table_tiago">
+      p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
+                                                               rgbaColor=[0.6, 0.6, 0.6, 1]),
+                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025]),
+                      baseMass=0, basePosition=[0.26, 0, 0.029])
+    # Create tablet mesh
+    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.165, .267, 0.02],
+                                                               rgbaColor=[0, 0, 0.0, 1]),
+                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
+                                                                     halfExtents=[.165, .267, 0.02]), baseMass=0,
+                      basePosition=[0.395, 0, 0.036])
+  
   <link name="table">
     <visual>
       <origin rpy="0 0 0" xyz="0 0.55 .71"/>
