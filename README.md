@@ -69,4 +69,11 @@ If you want to put custom trajectory or other methods (from x,y,z to joint angle
 
 `python ik_solver.py -g -c -i -a`
 
+**Reachchecker**
+
+`python reachchecker.py -g  -i -o 0 0 1.57 -ip -0.3 -0.6 1.3 -io 0 0 1.57 -r tiago_dual_mygym.urdf -d 1 --output_file tiago_test -v -c 0.2 0.8 0.05 -0.7 0.7 0.05 0.75 0.75 0.1`
+
+`python reachchecker.py -g -i -a -o 0 0 3.14 -ip 0.0 -0.6 1.2 -io 0 0 3.14 -r nico_upper_rh6d_r.urdf -en table_nico.urdf -d 1 --output_file nico_test -v --robot_pos 0.0 0.0 0.73 -c 0.2 0.5 0.05 -0.3 0.3 0.05 0.87 0.87 0.1`
+
+
 [![Video1](https://img.youtube.com/vi/YWLnepOwRhc/maxresdefault.jpg)](https://youtu.be/YWLnepOwRhc)

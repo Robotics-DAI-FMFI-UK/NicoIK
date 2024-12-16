@@ -202,6 +202,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_true", help="Show detail informtion about robot position in terminal")
     parser.add_argument("-p", "--position", nargs=3, type=float, help="Target position for the robot end effector as a list of three floats.")
+    parser.add_argument("-to", "--target_object", type=str, help="Target object")
     parser.add_argument("-o", "--orientation", nargs=3, type=float, help="Target orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-rr", "--real_robot", action="store_true", help="If set, execute action on real robot.")
     parser.add_argument("-a", "--animate", action="store_true", help="If set, the animation of motion is shown.")
@@ -216,7 +217,7 @@ def main():
     parser.add_argument("-io", "--iorientation", nargs=3, type=float, help="Initial orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-t", "--trajectory", type=str, help="If set, execute trajectory positions from the text file with corresponding path")
     parser.add_argument("-of", "--output_file", type=str,  default = 'test', help="If set, execute trajectory positions from the text file with corresponding path")
-    parser.add_argument("-c", "--calibration", type=str, default="TargetGridTiagoTable", help="Duration of movement in si/real robot")
+    parser.add_argument("-c", "--calibration", nargs=9, type = float, default=[0.2, 0.8, 0.3,-0.7, 0.7, 0.1, 0.77, 0.77, 0.2], help="Duration of movement in si/real robot")
     parser.add_argument("-e", "--experiment", action="store_true", help="If set, execute experiments positions")
     parser.add_argument("-s", "--speed", type=float, default=1, help="Speed of arm movement in simulator")
     parser.add_argument("-d", "--duration", type=float, default=2, help="Duration of movement in si/real robot")
@@ -340,7 +341,7 @@ def main():
             os.mkdir("statistics")
 
     elif arg_dict["calibration"]:
-        grid = calibration_matrices.TargetGridTiagoTable(0.2, 0.8, 0.3,-0.7, 0.7, 0.1,0.77, 0.77, 0.2)
+        grid = calibration_matrices.TargetGridTiagoTable(*arg_dict["calibration"])
     
     if arg_dict["iorientation"]:
         ik_init = calculate_ik_orientation(robot_id, end_effector_index, arg_dict["iposition"],p.getQuaternionFromEuler(arg_dict["iorientation"]), max_iterations, residual_threshold)
@@ -386,9 +387,14 @@ def main():
             TargetPstat.append(target_position[:2])
 
             # Create goal dot
-            p.createMultiBody(
-                baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.007, rgbaColor=[0, 0, 1, .5]),
-                baseCollisionShapeIndex=-1, baseMass=0, basePosition=target_position)
+            if arg_dict["target_object"]:
+                object_id = p.loadURDF('./ycb/'+ arg_dict["target_object"],basePosition = target_position, useFixedBase=True)
+                p.changeVisualShape(object_id, -1, rgbaColor=[1, 0, 0, 1.0])
+            else:
+                p.createMultiBody(
+                    baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.007, rgbaColor=[0, 0, 1, .5]),
+                    baseCollisionShapeIndex=-1, baseMass=0, basePosition=target_position)
+
 
             # Reset robot to initial position
             if arg_dict["initial"]:
@@ -633,10 +639,10 @@ def main():
                 failori += 1
             if linalg.norm(simdiff) > JOINTACCURACY:
                 failjoint += 1
-            p.addUserDebugText(f"Mean pos error:{meanposerror}",[.0, -0.4, 1.80], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0]) 
-            p.addUserDebugText(f"Mean ori error:{meanorierror}",[.0, -0.4, 1.70], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0]) 
-            p.addUserDebugText(f"Mean joint error:{meanjointerror}",[.0, -0.4, 1.60], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0])
-            p.addUserDebugText(f"Failed pos/ori/joint/total: {failpos} / {failori} / {failjoint} / {i+1}",[.0, -0.4, 1.5], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0]) 
+            p.addUserDebugText(f"Mean pos error:{meanposerror}",[.0, -0.6, 1.80], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0]) 
+            p.addUserDebugText(f"Mean ori error:{meanorierror}",[.0, -0.6, 1.70], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0]) 
+            p.addUserDebugText(f"Mean joint error:{meanjointerror}",[.0, -0.6, 1.60], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0])
+            p.addUserDebugText(f"Failed pos/ori/joint/total: {failpos} / {failori} / {failjoint} / {i+1}",[.0, -0.8, 1.5], textSize=1.5, lifeTime=2, textColorRGB=[1, 0, 0]) 
             #p.addUserDebugText(f"EE Orient: {p.getEulerFromQuaternion([a,b,c,d])}",[.0, -0.4, 1.55], textSize=1, lifeTime=2, textColorRGB=[1, 0, 0])
             #print([a,b,c,d])
             
