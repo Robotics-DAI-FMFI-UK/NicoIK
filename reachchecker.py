@@ -12,6 +12,10 @@ import calibration_matrices
 #GOALORI = [0, 0, 1]
 EEACCURACY = 0.05
 JOINTACCURACY = 0.05
+OPENGRIPPER = 0.04
+CLOSEDGRIPPER = 0.03
+Z_OFFSET = 0.15
+FORCE = 500
 # Set speed to reseti to initial position
 RESET_SPEED = 0.02
 # Acccuracy (vector distance) to consider the target positon reached
@@ -207,6 +211,7 @@ def main():
     parser.add_argument("-rr", "--real_robot", action="store_true", help="If set, execute action on real robot.")
     parser.add_argument("-a", "--animate", action="store_true", help="If set, the animation of motion is shown.")
     parser.add_argument("-g", "--gui", action="store_true", help="If set, turn the GUI on")
+    parser.add_argument("-gr", "--grasp", action="store_true", help="If set, test grasp")
     parser.add_argument("-rp", "--robot_pos", nargs=3, default = [0,0,0], type=float, help="Target orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-ro", "--robot_ori", nargs=3, default = [0,0,0], type=float, help="Target orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-r", "--robot", type=str, default="tiago_dual_mygym.urdf", help="Duration of movement in si/real robot")
@@ -234,6 +239,7 @@ def main():
     if arg_dict["gui"]:
         p.connect(p.GUI)
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+        p.setGravity(0, 0, -9.81)
         p.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=90, cameraPitch=-70, cameraTargetPosition=[0, 0, 0.7])
     else:
         p.connect(p.DIRECT)
@@ -388,13 +394,20 @@ def main():
 
             # Create goal dot
             if arg_dict["target_object"]:
-                object_id = p.loadURDF('./ycb/'+ arg_dict["target_object"],basePosition = target_position, useFixedBase=True)
+                object_id = p.loadURDF('./ycb/'+ arg_dict["target_object"],basePosition = target_position, useFixedBase=False)
                 p.changeVisualShape(object_id, -1, rgbaColor=[1, 0, 0, 1.0])
+                spin_simulation(100)
             else:
                 p.createMultiBody(
                     baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.007, rgbaColor=[0, 0, 1, .5]),
                     baseCollisionShapeIndex=-1, baseMass=0, basePosition=target_position)
 
+            if arg_dict["grasp"]:
+                #Find 'gjoint' in joint_names and store corresponding joint_indices values in gjoint_indices
+                gjoint_indices = [joint_indices[i] for i, joint in enumerate(joint_names) if 'gjoint' in joint]
+
+                print(gjoint_indices)  # Output: [1, 3]
+                target_position = [target_position[0], target_position[1], target_position[2] + Z_OFFSET]
 
             # Reset robot to initial position
             if arg_dict["initial"]:
@@ -473,7 +486,7 @@ def main():
                     p.setJointMotorControl2(robot_id, joint_indices[j],
                                             p.POSITION_CONTROL, ik_solution[j],
                                             maxVelocity=speed,
-                                            force=500,
+                                            force=FORCE,
                                             positionGain=0.7,
                                             velocityGain=0.3)
 
@@ -671,7 +684,172 @@ def main():
                                                                     
                 
                 
+
+            if arg_dict["grasp"]:
+                #open gripper gjoints
+                spin_simulation(50)
+                for j in range(len(gjoint_indices)):     
+                    if arg_dict["animate"]:     
+                        p.setJointMotorControl2(robot_id, gjoint_indices[j], p.POSITION_CONTROL, OPENGRIPPER, force=FORCE)
+                        spin_simulation(50)
+                    else:
+                        p.resetJointState(robot_id, gjoint_indices[j], OPENGRIPPER)
                 
+                target_position2 = [target_position[0], target_position[1], target_position[2] - Z_OFFSET]
+
+                if arg_dict["orientation"]:
+                    ik_solution = calculate_ik_orientation(robot_id,
+                                                            end_effector_index,
+                                                            target_position2,
+                                                            p.getQuaternionFromEuler(arg_dict["orientation"]),
+                                                            max_iterations,
+                                                            residual_threshold)
+            
+                else:
+                    ik_solution = calculate_ik_position(robot_id,
+                                                            end_effector_index,
+                                                            target_position2,
+                                                            max_iterations,
+                                                            residual_threshold)    
+
+                step = 1
+                if arg_dict["animate"]:
+                    for j in range(len(joint_indices)):
+                        speed = sim_speed_control(p.getJointState(robot_id, joint_indices[j])[0], ik_solution[j],
+                                                movement_duration)
+
+                        p.setJointMotorControl2(robot_id, joint_indices[j],
+                                                p.POSITION_CONTROL, ik_solution[j],
+                                                maxVelocity=speed,
+                                                force=FORCE,
+                                                positionGain=0.7,
+                                                velocityGain=0.3)
+
+                    tic = time.perf_counter()
+
+                    step = 1
+                    while not finished:
+                        for j in range(len(joint_indices)):
+                            state.append(p.getJointState(robot_id, joint_indices[j])[0])
+                        
+                        #print(state)
+                        
+                        simdiff = array(ik_solution) - array(state)
+                        if arg_dict["verbose"]:
+                            #CONVERT TO NICO DEGREES
+                            nicodeg_pos = state
+                            #print('SimNICO, Step: {}, JointDeg: {}'.format(step, ['{:.2f}'.format(pos) for pos in nicodeg_pos], end='\n'))
+                        
+                        spin_simulation(1)
+                        step += 1
+                        last_state = state
+                        state = []
+
+                        if linalg.norm(simdiff) <= JOINTACCURACY:
+                            finished = True
+
+                        if step > 350:
+                            #failed += 1
+                            #print('ANIMATION MODE FAILED - NEEDS DEBUGGGING')
+                            
+                            finished = True
+
+                    finished = False
+
+                else:
+                    tic = time.perf_counter()
+                    
+                    for j in range(len(joint_indices)):
+                        p.resetJointState(robot_id, joint_indices[j], ik_solution[j])
+                    for j in range(len(joint_indices)):
+                            state.append(p.getJointState(robot_id, joint_indices[j])[0])
+                    last_state = state
+                    simdiff = rad2deg(array(ik_solution)) - rad2deg(array(state))
+                    state = []
+                    toc = time.perf_counter()
+                    
+                    #spin_simulation(10)
+                #close gripper gjoints
+                for j in range(len(gjoint_indices)):     
+                    if arg_dict["animate"]:     
+                        p.setJointMotorControl2(robot_id, gjoint_indices[j], p.POSITION_CONTROL, CLOSEDGRIPPER, force=FORCE)
+                        spin_simulation(50)
+                    else:
+                        p.resetJointState(robot_id, gjoint_indices[j], CLOSEDGRIPPER)
+                # Calculate IK solution error
+
+                if arg_dict["orientation"]:
+                    ik_solution = calculate_ik_orientation(robot_id,
+                                                            end_effector_index,
+                                                            target_position,
+                                                            p.getQuaternionFromEuler(arg_dict["orientation"]),
+                                                            max_iterations,
+                                                            residual_threshold)
+            
+                else:
+                    ik_solution = calculate_ik_position(robot_id,
+                                                            end_effector_index,
+                                                            target_position,
+                                                            max_iterations,
+                                                            residual_threshold)    
+
+                step = 1
+                if arg_dict["animate"]:
+                    for j in range(len(joint_indices)):
+                        speed = sim_speed_control(p.getJointState(robot_id, joint_indices[j])[0], ik_solution[j],
+                                                movement_duration)
+
+                        p.setJointMotorControl2(robot_id, joint_indices[j],
+                                                p.POSITION_CONTROL, ik_solution[j],
+                                                maxVelocity=speed,
+                                                force=FORCE,
+                                                positionGain=0.7,
+                                                velocityGain=0.3)
+
+                    tic = time.perf_counter()
+
+                    step = 1
+                    while not finished:
+                        for j in range(len(joint_indices)):
+                            state.append(p.getJointState(robot_id, joint_indices[j])[0])
+                        
+                        #print(state)
+                        
+                        simdiff = array(ik_solution) - array(state)
+                        if arg_dict["verbose"]:
+                            #CONVERT TO NICO DEGREES
+                            nicodeg_pos = state
+                            #print('SimNICO, Step: {}, JointDeg: {}'.format(step, ['{:.2f}'.format(pos) for pos in nicodeg_pos], end='\n'))
+                        
+                        spin_simulation(1)
+                        step += 1
+                        last_state = state
+                        state = []
+
+                        if linalg.norm(simdiff) <= JOINTACCURACY:
+                            finished = True
+
+                        if step > 350:
+                            #failed += 1
+                            #print('ANIMATION MODE FAILED - NEEDS DEBUGGGING')
+                            
+                            finished = True
+
+                    finished = False
+
+                else:
+                    tic = time.perf_counter()
+                    
+                    for j in range(len(joint_indices)):
+                        p.resetJointState(robot_id, joint_indices[j], ik_solution[j])
+                    for j in range(len(joint_indices)):
+                            state.append(p.getJointState(robot_id, joint_indices[j])[0])
+                    last_state = state
+                    simdiff = rad2deg(array(ik_solution)) - rad2deg(array(state))
+                    state = []
+                    toc = time.perf_counter()
+
+
             if arg_dict["real_robot"]:
 
                 targetdeg = []
