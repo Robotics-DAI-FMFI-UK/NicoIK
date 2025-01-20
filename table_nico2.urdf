@@ -3,33 +3,33 @@
 <robot name="table_nico">
   <link name="table">
     <visual>
-      <origin rpy="0 0 0" xyz="0. 0.26 .029"/>
+      <origin rpy="0 0 0" xyz="0. 0.25 .70"/>
       <geometry>
-				<box size="0.9 .6 0.05"/>
+				<box size="0.9 0.6 0.05"/>
       </geometry>
        <material name="framemat0">
         <color rgba="0.8 0 0 1"/>
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
+      <origin rpy="0 0 0" xyz="0 0.25 .70"/>
       <geometry>
-	 	    <box size="1.4 0.7 0.02"/>
+	 	    <box size="0.9 0.6 0.05"/>
       </geometry>
     </collision>
     <visual>
-      <origin rpy="0 0 0" xyz="0.395 0.0 .036"/>
+      <origin rpy="0 0 0" xyz="0.0 0.385 .71"/>
       <geometry>
-				<box size="0.330 .534 0.04"/>
+				<box size="0.534 .33 0.04"/>
       </geometry>
        <material name="framemat0">
         <color rgba="0.8 0 0 1"/>
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0.55 .71"/>
+      <origin rpy="0 0 0" xyz="0 0.385 .71"/>
       <geometry>
-	 	    <box size="1.4 0.7 0.02"/>
+	 	    <box size="0.534 .33 0.04"/>
       </geometry>
     </collision>
     </link>
