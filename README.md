@@ -77,4 +77,8 @@ If you want to put custom trajectory or other methods (from x,y,z to joint angle
 
 `python reachchecker.py -g  -i -o 0 0 1.57 -ip -0.3 -0.6 1.3 -io 0 0 1.57 -r tiago_dual_mygym.urdf -d 1 --output_file tiago_test -v -c 0.25 0.7 0.1 -0.65 0.65 0.1 0.72 0.72 0.1 -a -to apple.urdf --grasp`
 
+`python reachchecker.py -g -i -a -o 0 0 3.14 -ip 0.0 -0.6 1.2 -io 0 0 3.14 -r nico.urdf -en table_nico2.urdf -d 1 --output_file nico_test -v --robot_pos 0.0 0.0 0.68 -c 0.25 0.45 0.05 -0.20 0.20 0.05 0.73 0.73 0.1 -to apple50.urdf --grasp`
+
+`python reachchecker.py -g -i -a -o 0 3.14 3.14 -ip -0.1 -0.6 1.2 -io 0 3.14 3.14 -r nico_grasp.urdf -en table_nico2.urdf -d 1 --output_file nico_test -v --robot_pos 0.0 0.0 0.68 -c 0.25 0.45 0.05 -0.20 0.20 0.05 0.89 0.89 0.1`
+
 [![Video1](https://img.youtube.com/vi/YWLnepOwRhc/maxresdefault.jpg)](https://youtu.be/YWLnepOwRhc)
