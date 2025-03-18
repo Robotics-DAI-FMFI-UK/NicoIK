@@ -7,13 +7,13 @@ import csv
 
 mode = 'calibrate' # anything else is exploratory mode
 
-SPEED = 0.05
-SPEEDF = 0.05
-DELAY= 3
-REPEAT = 10
+SPEED = 0.03
+SPEEDF = 0.09
+DELAY= 2
+REPEAT = 1
 
 reset_pose = [0,0,0,90,90,90,0,0,-180,-180,-180,-180,0.22,12.88,11.03,100.97,-24.13,-91.91,-180.0,-180.0,-180.0,-174.81]
-
+drop_pose = [0,0,-20,27,40,90,125,100,180,20,20,20,0,13,11,100,-24,-91,-180.0,-180.0,-180.0,-175]
 init_pos = {  # standard position
     'head_z': 0.0,
     'head_y': 0.0,
@@ -94,14 +94,22 @@ def reset_robot(robot, init_pos, values):
 
 def close_hand(robot):
     closing = True
-    for angle in range(-180, -20, 20):
+    for angle in range(-180, 20, 20):
         robot.setAngle('r_thumb_z', 180, SPEEDF)
         robot.setAngle('r_thumb_x', angle, SPEEDF)
         robot.setAngle('r_indexfinger_x', angle, SPEEDF)
         robot.setAngle('r_middlefingers_x', angle, SPEEDF)
-        time.sleep(0.5)
+        time.sleep(0.2)
 
-    robot.setAngle('r_elbow_y', 90, SPEED)
+def open_hand(robot):
+    closing = True
+    for angle in range(20, -180, -20):
+        robot.setAngle('r_thumb_z', 180, SPEEDF)
+        robot.setAngle('r_thumb_x', angle, SPEEDF)
+        robot.setAngle('r_indexfinger_x', angle, SPEEDF)
+        robot.setAngle('r_middlefingers_x', angle, SPEEDF)
+        time.sleep(0.2)
+
 
 def set_sim_robot(robot, robot_id,joint_names, joint_indices):
     actual_position = get_real_joints(robot, joint_names)
@@ -221,10 +229,18 @@ def main():
                     #p.addUserDebugText(f"X,Y,Z error: {array(marker_position[index]) - array(sim_pos[0])}",[.0, -0.3, .55], textSize=2, lifeTime=4, textColorRGB=[1, 0, 0])
                     #time.sleep(DELAY)
                     close_hand(robot)
+                    #time.sleep(DELAY)
+                    robot.setAngle('r_elbow_y', 90, SPEED)
+                    #robot.setAngle('r_shoulder_z', -20, SPEED)
                     time.sleep(DELAY)
+                    reset_robot(robot, init_pos, drop_pose)                    
+                    time.sleep(DELAY)
+                    open_hand(robot)
+                    #time.sleep(DELAY)
                     reset_robot(robot, init_pos, reset_pose)
+
                     time.sleep(DELAY)
-                    set_sim_robot(robot, robot_id, joint_names, joint_indices)                
+                    #set_sim_robot(robot, robot_id, joint_names, joint_indices)                
                 index += 1
             
 
