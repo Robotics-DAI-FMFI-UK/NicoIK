@@ -81,4 +81,32 @@ If you want to put custom trajectory or other methods (from x,y,z to joint angle
 
 `python reachchecker.py -g -i -a -o 0 3.14 3.14 -ip -0.1 -0.6 1.2 -io 0 3.14 3.14 -r nico_grasp.urdf -en table_nico2.urdf -d 1 --output_file nico_test -v --robot_pos 0.0 0.0 0.68 -c 0.25 0.45 0.05 -0.20 0.20 0.05 0.89 0.89 0.1`
 
+**Experiment**
+
+Will point at 7 points on the touchscreen based on legibility experiment paradigm
+
+`python experiment.py`
+
+**Calibration**
+
+Will run tablet calibration based on stored positions in specified csv file (joint values)
+it is calibrated on several points on the touchscreen and body
+
+`python calibrators.py`
+
+**Grasping**
+
+Will grasp object from 5 points predefined in csv as joint angles, open a close hand and put object to the storage.
+
+`python grasping.py`
+
+**GraspingIK**
+
+will grasp object placed on touchscreen spefied n pixels or x,y from touchscren corner
+
+`python graspik.py -p 10 10`
+
+
+
+
 [![Video1](https://img.youtube.com/vi/YWLnepOwRhc/maxresdefault.jpg)](https://youtu.be/YWLnepOwRhc)
