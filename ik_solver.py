@@ -638,7 +638,9 @@ def main():
         time.sleep(0.1)
         #CONVERT TO NICO DEGREES
         nicodeg_ik = rad2nicodeg(actuated_joints, ik_solution)
-
+        print(end_effector_index)
+        print(actuated_joints)
+        print(nicodeg_ik)
         if arg_dict["verbose"]:
             #CONVERT TO NICO DEGREES
             nicodeg_state = rad2nicodeg(actuated_joints, last_state)

@@ -381,7 +381,7 @@
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="-2.57" upper="0" velocity="1"/>
 	</joint>
-	<joint name="r_indexfinger_x" type="revolute">
+	<joint name="r_indexfinger_x" type="fixed">
 		<parent link="right_palm"/>
 		<child link="r_indexfinger"/>
 		<origin rpy="0 0 0" xyz="0.00 -0.02 -0.06"/>
