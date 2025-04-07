@@ -515,46 +515,45 @@ if __name__ == "__main__":
     # Determine if GUI is needed
     use_gui_for_pybullet = args.simulate and args.test_ik
 
-    try:
-        print("Initializing Grasper...")
-        grasper = Grasper(
-            urdf_path=args.urdf,
-            motor_config=args.config,
-            connect_pybullet=True,  # Always connect pybullet if simulating or testing IK
-            connect_robot=connect_hw,
-            use_gui=use_gui_for_pybullet,
-        )
+    print("Initializing Grasper...")
+    grasper = Grasper(
+        urdf_path=args.urdf,
+        motor_config=args.config,
+        connect_pybullet=True,  # Always connect pybullet if simulating or testing IK
+        connect_robot=connect_hw,
+        use_gui=use_gui_for_pybullet,
+    )
 
-        ik_calculated_pose = None  # Store IK result if successful
+    ik_calculated_pose = None  # Store IK result if successful
 
-        if args.test_ik:
-            if grasper.is_pybullet_connected:
-                print(f"\n--- Testing IK Calculation ---")
-                print(f"Target Position: {args.pos}")
-                print(f"Target Orientation (Euler): {args.ori}")
-                ik_solution_rad = grasper.calculate_ik(args.pos, args.ori)
-                if ik_solution_rad:
-                    print(f"IK Solution (radians): {ik_solution_rad}")
-                    ik_calculated_pose = ik_solution_rad  # Store for potential visualization
-                    # Ensure joint_names are populated before converting
-                    if grasper.joint_names:
-                        ik_solution_nico_deg = grasper.rad2nicodeg(
-                            grasper.joint_names, ik_solution_rad
-                        )
-                        print(f"IK Solution (Nico degrees): {ik_solution_nico_deg}")
-                    else:
-                        print(
-                            "Could not convert to Nico degrees: Joint names not available."
-                        )
+    if args.test_ik:
+        if grasper.is_pybullet_connected:
+            print(f"\n--- Testing IK Calculation ---")
+            print(f"Target Position: {args.pos}")
+            print(f"Target Orientation (Euler): {args.ori}")
+            ik_solution_rad = grasper.calculate_ik(args.pos, args.ori)
+            if ik_solution_rad:
+                print(f"IK Solution (radians): {ik_solution_rad}")
+                ik_calculated_pose = ik_solution_rad  # Store for potential visualization
+                # Ensure joint_names are populated before converting
+                if grasper.joint_names:
+                    ik_solution_nico_deg = grasper.rad2nicodeg(
+                        grasper.joint_names, ik_solution_rad
+                    )
+                    print(f"IK Solution (Nico degrees): {ik_solution_nico_deg}")
                 else:
-                    print("IK calculation failed.")
-                print("--- IK Test Finished ---\n")
+                    print(
+                        "Could not convert to Nico degrees: Joint names not available."
+                    )
             else:
-                print("Cannot perform IK test: PyBullet not connected.")
+                print("IK calculation failed.")
+            print("--- IK Test Finished ---\n")
         else:
-            # Execute grasp sequence steps individually
-            print("\n--- Executing Grasp Sequence Steps Individually ---")
-            grasper.perform_move()
-            grasper.perform_grasp()
-            grasper.perform_drop()
-            print("--- Grasp Sequence Steps Finished ---\n")
+            print("Cannot perform IK test: PyBullet not connected.")
+    else:
+        # Execute grasp sequence steps individually
+        print("\n--- Executing Grasp Sequence Steps Individually ---")
+        grasper.perform_move()
+        grasper.perform_grasp()
+        grasper.perform_drop()
+        print("--- Grasp Sequence Steps Finished ---\n")
