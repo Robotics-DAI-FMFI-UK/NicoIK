@@ -4,6 +4,31 @@ import argparse
 import time
 import numpy as np
 
+def calculate_ik(robot_id, end_effector_index, box_pos, fixed_orientation):
+    """Calculate inverse kinematics solution for the robot arm."""
+    ik_solution = p.calculateInverseKinematics(
+        robot_id,
+        end_effector_index,
+        box_pos,
+        maxNumIterations=100,
+        residualThreshold=0.001
+    )
+    return ik_solution
+
+def apply_ik_solution(robot_id, ik_solution, joint_idxs):
+    """Apply the IK solution to the robot joints."""
+    joint_values = []
+    for index, joint_idx in enumerate(joint_idxs):
+        joint_pos = ik_solution[index]
+        p.setJointMotorControl2(
+            bodyIndex=robot_id,
+            jointIndex=joint_idx,
+            controlMode=p.POSITION_CONTROL,
+            targetPosition=joint_pos
+        )
+        joint_values.append(f"{p.getJointInfo(robot_id, joint_idx)[1].decode('utf-8')}: {joint_pos:.4f} rad ({joint_pos*57.2958:.2f}°)")
+    return joint_values
+
 def main():
     parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
     parser.add_argument('--urdf', type=str, default='nico_grasp.urdf',
@@ -15,27 +40,27 @@ def main():
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     
     # Fixed orientation for IK (quaternion)
-    fixed_orientation = p.getQuaternionFromEuler([0, -np.pi/2, 0])  # Fixed downward orientation
+    fixed_orientation = p.getQuaternionFromEuler([0, 0, 3.14])  # Fixed downward orientation
 
     # Create ground plane (90x60x3 cm)
     p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
-                                                               rgbaColor=[0.0, 0.6, 0.6, 1]),
+                                                           rgbaColor=[0.0, 0.6, 0.6, 1]),
                       baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025]),
                       baseMass=0, basePosition=[0.26, 0, 0.029])
     # Create tablet mesh
     p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.165, .267, 0.001],
-                                                               rgbaColor=[0, 0, 0.0, .5]),
+                                                           rgbaColor=[0, 0, 0.0, .5]),
                       baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
                                                                     halfExtents=[.165, .267, 0.001]), baseMass=0,
                       basePosition=[0.395, 0, 0.054])
-    
+
     # Load URDF
     try:
         robot_id = p.loadURDF(args.urdf, useFixedBase=True)
     except:
         print(f"Error: Failed to load URDF file '{args.urdf}'")
         return
-    
+
     # Find end effector link
     num_joints = p.getNumJoints(robot_id)
     end_effector_index = -1
@@ -50,41 +75,29 @@ def main():
         return
 
     # Get joint information
-    sliders = []
-    
+    joint_idxs = []
     for joint_idx in range(num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
         joint_name = joint_info[1].decode("utf-8")
         joint_type = joint_info[2]
         
-        # Only create sliders for non-fixed joints
         if joint_type != p.JOINT_FIXED:
             lower = joint_info[8]
             upper = joint_info[9]
             
-            # Handle unlimited joints
             if lower >= upper:
-                lower, upper = -180, 180  # Default to ±180° for rotation joints
+                lower, upper = -180, 180
                 
-            # Convert joint limits from radians to degrees for display
-            lower_deg = lower * 57.2958
-            upper_deg = upper * 57.2958
-            slider = p.addUserDebugParameter(
-                paramName=joint_name + " (deg)",
-                rangeMin=lower_deg,
-                rangeMax=upper_deg,
-                startValue=(lower_deg + upper_deg)/2
-            )
-            sliders.append((joint_idx, slider))
+            joint_idxs.append(joint_idx)
 
     # Box control variables
-    box_size = 0.03  # 5x5x5 cm
+    box_size = 0.03
     box_id = p.createMultiBody(
         baseMass=0.1,
         baseCollisionShapeIndex=p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_size/2]*3),
-        basePosition=[0.35, 0, 0.25]  # Initial position
+        basePosition=[0.35, 0, 0.25]
     )
-    
+
     # Create sliders for box position control
     x_slider = p.addUserDebugParameter("Box X", 0.25, 0.5, 0.35)
     y_slider = p.addUserDebugParameter("Box Y", -0.25, 0.25, 0)
@@ -98,7 +111,7 @@ def main():
         cameraPitch=-15,
         cameraTargetPosition=[0, 0, 0.3]
     )
-    
+
     try:
         while True:
             # Update box position from sliders
@@ -112,44 +125,9 @@ def main():
             # Check keyboard events
             keys = p.getKeyboardEvents()
             if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
-                # Calculate IK to reach box position
-                ik_solution = p.calculateInverseKinematics(
-                    robot_id,
-                    end_effector_index,
-                    box_pos,
-                    targetOrientation=fixed_orientation,
-                    maxNumIterations=100,
-                    residualThreshold=0.001
-                )
-                
-                print(sliders)
-                print(ik_solution)
+                ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, fixed_orientation)
+                apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
-                # Apply IK solution to joints
-                joint_values = []
-                for joint_idx, slider_id in sliders:
-                    joint_pos = ik_solution[slider_id]
-                    p.setJointMotorControl2(
-                        bodyIndex=robot_id,
-                        jointIndex=joint_idx,
-                        controlMode=p.POSITION_CONTROL,
-                        targetPosition=joint_pos
-                    )
-                    joint_values.append(f"{p.getJointInfo(robot_id, joint_idx)[1].decode('utf-8')}: {joint_pos:.4f} rad ({joint_pos*57.2958:.2f}°)")
-                input("Press 'r' to calculate IK for box position")
-
-                print("\nCalculated joint positions for box reaching:")
-                print("\n".join(joint_values))
-            
-            for joint_idx, slider_id in sliders:
-                value_deg = p.readUserDebugParameter(slider_id)
-                value = value_deg * 0.0174533  # Convert degrees back to radians
-                p.setJointMotorControl2(
-                    bodyIndex=robot_id,
-                    jointIndex=joint_idx,
-                    controlMode=p.POSITION_CONTROL,
-                    targetPosition=value
-                )
             time.sleep(0.01)
     except KeyboardInterrupt:
         p.disconnect()
