@@ -82,7 +82,7 @@ def main():
     box_id = p.createMultiBody(
         baseMass=0.1,
         baseCollisionShapeIndex=p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_size/2]*3),
-        basePosition=[0.35, 0, 0.07]  # Initial position
+        basePosition=[0.35, 0, 0.25]  # Initial position
     )
     
     # Create sliders for box position control
@@ -110,7 +110,36 @@ def main():
             p.resetBasePositionAndOrientation(box_id, box_pos, [0,0,0,1])
             
             # Check keyboard events
-            
+            keys = p.getKeyboardEvents()
+            if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
+                # Calculate IK to reach box position
+                ik_solution = p.calculateInverseKinematics(
+                    robot_id,
+                    end_effector_index,
+                    box_pos,
+                    targetOrientation=fixed_orientation,
+                    maxNumIterations=100,
+                    residualThreshold=0.001
+                )
+                
+                print(sliders)
+                print(ik_solution)
+
+                # Apply IK solution to joints
+                joint_values = []
+                for joint_idx, slider_id in sliders:
+                    joint_pos = ik_solution[slider_id]
+                    p.setJointMotorControl2(
+                        bodyIndex=robot_id,
+                        jointIndex=joint_idx,
+                        controlMode=p.POSITION_CONTROL,
+                        targetPosition=joint_pos
+                    )
+                    joint_values.append(f"{p.getJointInfo(robot_id, joint_idx)[1].decode('utf-8')}: {joint_pos:.4f} rad ({joint_pos*57.2958:.2f}°)")
+                input("Press 'r' to calculate IK for box position")
+
+                print("\nCalculated joint positions for box reaching:")
+                print("\n".join(joint_values))
             
             for joint_idx, slider_id in sliders:
                 value_deg = p.readUserDebugParameter(slider_id)
