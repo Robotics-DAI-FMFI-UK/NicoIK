@@ -31,8 +31,8 @@ def apply_ik_solution(robot_id, ik_solution, joint_idxs):
 
 def main():
     parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
-    parser.add_argument('--urdf', type=str, default='nico_grasp.urdf',
-                       help='Path to URDF file (default: nico_grasp.urdf)')
+    parser.add_argument('--urdf', type=str, default='nico_grasp.urdf', help='Path to URDF file (default: nico_grasp.urdf)')
+    parser.add_argument("-ct", "--control", type=str, default='auto', help="Calculate IK automatically or by keypress (default: auto)")
     args = parser.parse_args()
 
     # Initialize PyBullet
@@ -123,10 +123,14 @@ def main():
             p.resetBasePositionAndOrientation(box_id, box_pos, [0,0,0,1])
             
             # Check keyboard events
-            keys = p.getKeyboardEvents()
-            if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
+            if args.control == 'auto':
                 ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, fixed_orientation)
                 apply_ik_solution(robot_id, ik_solution, joint_idxs)
+            else:
+                keys = p.getKeyboardEvents()
+                if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
+                    ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, fixed_orientation)
+                    apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
             time.sleep(0.01)
     except KeyboardInterrupt:
