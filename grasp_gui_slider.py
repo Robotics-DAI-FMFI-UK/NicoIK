@@ -99,13 +99,35 @@ def main():
         basePosition=[0.35, 0, 0.25]
     )
 
+    # Second box control variables
+    box2_size = 0.03
+    box2_initial_pos = [0.0, -0.3, 0.5]
+    box2_id = p.createMultiBody(
+        baseMass=0, # Visual only
+        baseCollisionShapeIndex=-1, # No collision
+        baseVisualShapeIndex=p.createVisualShape(p.GEOM_BOX, halfExtents=[box2_size/2]*3, rgbaColor=[0, 0, 1, 0.7]), # Black color
+        basePosition=box2_initial_pos
+    )
+
+
     # Create sliders for box position control
-    x_slider = p.addUserDebugParameter("Box X", 0.25, 0.5, 0.3)
-    y_slider = p.addUserDebugParameter("Box Y", -0.25, 0.25, -0.2)
-    z_slider = p.addUserDebugParameter("Box Z", 0.07, 0.4, 0.07)
-    roll_slider = p.addUserDebugParameter("Roll", -np.pi, np.pi, 0)
-    pitch_slider = p.addUserDebugParameter("Pitch", -np.pi, np.pi, 0)
-    yaw_slider = p.addUserDebugParameter("Yaw", -np.pi, np.pi, 0) # Default to downward
+    x_slider = p.addUserDebugParameter("Goal X", 0.25, 0.5, 0.3)
+    y_slider = p.addUserDebugParameter("Goal Y", -0.25, 0.25, -0.2)
+    z_slider = p.addUserDebugParameter("Goal Z", 0.07, 0.7, 0.07)
+    roll_slider = p.addUserDebugParameter("Goal_Roll", -np.pi, np.pi, 0)
+    pitch_slider = p.addUserDebugParameter("Goal_Pitch", -np.pi, np.pi, 0)
+    yaw_slider = p.addUserDebugParameter("Goal_Yaw", -np.pi, np.pi, 0) # Default to downward
+
+    # Create sliders for second box position control
+    x2_slider = p.addUserDebugParameter("Init X", -0.2, 0.2, box2_initial_pos[0])
+    y2_slider = p.addUserDebugParameter("Init Y", -0.6, 0.2, box2_initial_pos[1])
+    z2_slider = p.addUserDebugParameter("Init Z", 0.2, 0.7, box2_initial_pos[2])
+
+    # Create additional init sliders for Yaw, Pitch, Roll
+    init_roll_slider = p.addUserDebugParameter("Init Roll", -np.pi, np.pi, 0)
+    init_pitch_slider = p.addUserDebugParameter("Init Pitch", -np.pi, np.pi, -np.pi/2)
+    init_yaw_slider = p.addUserDebugParameter("Init Yaw", -np.pi, np.pi, 0)
+
 
     # Main simulation loop
     p.setRealTimeSimulation(1)
@@ -120,25 +142,59 @@ def main():
     actual_orientation_line_id = None # Initialize actual orientation line ID tracker
     orientation_diff_text_id = None # Initialize debug text ID tracker
     position_diff_text_id = None # Initialize position difference text ID tracker
+    
+    use_second_target = False # Flag to switch between target boxes/orientations
+    
     try:
         while True:
-            # Update box position from sliders
-            box_pos = [
-                p.readUserDebugParameter(x_slider),
-                p.readUserDebugParameter(y_slider), 
-                p.readUserDebugParameter(z_slider)
-            ]
-            p.resetBasePositionAndOrientation(box_id, box_pos, [0,0,0,1])
- 
-            # Read orientation sliders and calculate quaternion
-            roll = p.readUserDebugParameter(roll_slider)
-            pitch = p.readUserDebugParameter(pitch_slider)
-            yaw = p.readUserDebugParameter(yaw_slider)
-            desired_orientation_quat = p.getQuaternionFromEuler([roll, pitch, yaw])
-            desired_orientation_euler = [roll, pitch, yaw]
- 
-            # Apply IK first to get the latest end effector state
-            ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, desired_orientation_quat)
+            # Check keyboard events first to potentially switch targets
+            keys = p.getKeyboardEvents()
+            if ord('x') in keys and keys[ord('x')] & p.KEY_WAS_TRIGGERED:
+                use_second_target = not use_second_target
+                print(f"Switched target source: {'Initial state' if use_second_target else 'Goal State'}")
+
+            # --- Determine Target Position and Orientation based on flag ---
+            if use_second_target:
+                # Use second box sliders for position
+                target_pos = [
+                    p.readUserDebugParameter(x2_slider),
+                    p.readUserDebugParameter(y2_slider),
+                    p.readUserDebugParameter(z2_slider)
+                ]
+                # Use initial sliders for orientation
+                roll = p.readUserDebugParameter(init_roll_slider)
+                pitch = p.readUserDebugParameter(init_pitch_slider)
+                yaw = p.readUserDebugParameter(init_yaw_slider)
+                target_orientation_quat = p.getQuaternionFromEuler([roll, pitch, yaw])
+                target_orientation_euler = [roll, pitch, yaw]
+                # Update the visual position of the second box (black)
+                p.resetBasePositionAndOrientation(box2_id, target_pos, [0,0,0,1])
+                # Keep the first box (red) at its slider position for reference
+                box1_pos_ref = [ p.readUserDebugParameter(x_slider), p.readUserDebugParameter(y_slider), p.readUserDebugParameter(z_slider)]
+                p.resetBasePositionAndOrientation(box_id, box1_pos_ref, [0,0,0,1])
+
+            else:
+                # Use first box sliders for position
+                target_pos = [
+                    p.readUserDebugParameter(x_slider),
+                    p.readUserDebugParameter(y_slider), 
+                    p.readUserDebugParameter(z_slider)
+                ]
+                # Use main orientation sliders
+                roll = p.readUserDebugParameter(roll_slider)
+                pitch = p.readUserDebugParameter(pitch_slider)
+                yaw = p.readUserDebugParameter(yaw_slider)
+                target_orientation_quat = p.getQuaternionFromEuler([roll, pitch, yaw])
+                target_orientation_euler = [roll, pitch, yaw]
+                # Update the visual position of the first box (red)
+                p.resetBasePositionAndOrientation(box_id, target_pos, [0,0,0,1])
+                # Keep the second box (black) at its slider position for reference
+                box2_pos_ref = [ p.readUserDebugParameter(x2_slider), p.readUserDebugParameter(y2_slider), p.readUserDebugParameter(z2_slider)]
+                p.resetBasePositionAndOrientation(box2_id, box2_pos_ref, [0,0,0,1])
+
+
+            # Apply IK first using the determined target
+            ik_solution = calculate_ik(robot_id, end_effector_index, target_pos, target_orientation_quat)
             apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
             # Get current state of the end effector AFTER applying IK
@@ -155,7 +211,7 @@ def main():
                 p.removeUserDebugItem(orientation_line_id)
 
             # Calculate end point for the desired orientation line (originating from current ee_pos)
-            rot_matrix_desired = p.getMatrixFromQuaternion(desired_orientation_quat) # Use slider orientation
+            rot_matrix_desired = p.getMatrixFromQuaternion(target_orientation_quat) # Use active target orientation
             z_axis_direction_desired = [rot_matrix_desired[2], rot_matrix_desired[5], rot_matrix_desired[8]]
             # Invert the z-axis direction to point upside down
             line_end_desired = [ee_pos[0] - z_axis_direction_desired[0] * line_length,
@@ -167,12 +223,12 @@ def main():
 
             # --- Calculate and Display Orientation Difference ---
             # Quaternion difference
-            quat_diff = p.getDifferenceQuaternion(desired_orientation_quat, actual_orientation_quat)
+            quat_diff = p.getDifferenceQuaternion(target_orientation_quat, actual_orientation_quat)
             # Convert quaternion difference to Euler angles (axis-angle representation essentially)
             axis, angle = p.getAxisAngleFromQuaternion(quat_diff)
             
             # Euler angle difference (direct subtraction, might wrap around pi)
-            euler_diff = [d - a for d, a in zip(desired_orientation_euler, actual_orientation_euler)]
+            euler_diff = [d - a for d, a in zip(target_orientation_euler, actual_orientation_euler)]
             # Normalize Euler differences to [-pi, pi] for better readability (optional)
             euler_diff_norm = [(diff + np.pi) % (2 * np.pi) - np.pi for diff in euler_diff]
 
@@ -187,16 +243,21 @@ def main():
             )
             
             # Add new orientation debug text
+            if angle> 0.1:
+                color=[1,0,0]
+            else:
+                color = [0, 0, 1]
+            
             orientation_diff_text_id = p.addUserDebugText(
                 orientation_diff_text, 
-                textPosition=[0.05, -0.4, 0.5], # Position the text in the GUI
-                textColorRGB=[1, 1, 1], 
+                textPosition=[0.05, 0.0, 0.8], # Position the text in the GUI
+                textColorRGB=color, 
                 textSize=1.0
             )
 
             # --- Calculate and Display Position Difference ---
-            # Calculate Euclidean distance
-            pos_diff_vec = np.array(box_pos) - np.array(ee_pos)
+            # Calculate Euclidean distance using the active target position
+            pos_diff_vec = np.array(target_pos) - np.array(ee_pos)
             pos_distance = np.linalg.norm(pos_diff_vec)
 
             # Remove previous position debug text
@@ -206,19 +267,24 @@ def main():
             # Format position difference text
             position_diff_text = f"Position Distance: {pos_distance:.4f} m"
 
+            if pos_distance> 0.1:
+                color2 = [1,0,0]
+            else:
+                color2 = [0, 0, 1]
+
             # Add new position debug text
             position_diff_text_id = p.addUserDebugText(
                 position_diff_text,
-                textPosition=[0.05, -0.4, 0.6], # Position above orientation text
-                textColorRGB=[1, 1, 1],
+                textPosition=[0.05, 0, 0.7], # Position above orientation text
+                textColorRGB=color2, 
                 textSize=1.0
             )
             
             # Check keyboard events (IK already applied above)
-            keys = p.getKeyboardEvents()
+            # keys = p.getKeyboardEvents() # Already got keys at the start of the loop
             if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
-                # Re-apply IK if needed (though it's already applied each loop)
-                ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, desired_orientation_quat)
+                # Re-apply IK if needed (though it's already applied each loop with current target)
+                ik_solution = calculate_ik(robot_id, end_effector_index, target_pos, target_orientation_quat)
                 apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
             time.sleep(0.01)
