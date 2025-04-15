@@ -454,7 +454,7 @@
 			<origin rpy="0 0 0" xyz="0.005637 0.000876 0.033153"/>
 		</inertial>
 	</link>
-	<joint name="l_shoulder_z" type="revolute">
+	<joint name="l_shoulder_z" type="fixed">
 		<parent link="torso"/>
 		<child link="left_shoulder"/>
 		<origin rpy="0 0 0" xyz="0.000 0.040 0.23"/>
@@ -483,7 +483,7 @@
 			<origin rpy="0 0 0" xyz="-0 -0.041345 -0.002364"/>
 		</inertial>
 	</link>
-	<joint name="l_shoulder_y" type="revolute">
+	<joint name="l_shoulder_y" type="fixed">
 		<parent link="left_shoulder"/>
 		<child link="left_collarbone"/>
 		<origin rpy="0 0 0" xyz="-0.021 0.023 0.033"/>
@@ -512,7 +512,7 @@
 			<origin rpy="0 0 0" xyz="-0.02306 -0.000321 -0.0866"/>
 		</inertial>
 	</link>
-	<joint name="l_arm_x" type="revolute">
+	<joint name="l_arm_x" type="fixed">
 		<parent link="left_collarbone"/>
 		<child link="left_upper_arm"/>
 		<origin rpy="0 0 0" xyz="0.00 0.073 -0.023"/>
@@ -541,7 +541,7 @@
 			<origin rpy="0 0 0" xyz="0 0.022485 -0.081055"/>
 		</inertial>
 	</link>
-	<joint name="l_elbow_y" type="revolute">
+	<joint name="l_elbow_y" type="fixed">
 		<parent link="left_upper_arm"/>
 		<child link="left_lower_arm"/>
 		<origin rpy="0 3.14 0" xyz="0.0 0 -0.17"/>
@@ -570,7 +570,7 @@
 			<origin rpy="0 0 0" xyz="0.000031 -0.011056 -0.0675"/>
 		</inertial>
 	</link>
-	<joint name="l_wrist_z" type="revolute">
+	<joint name="l_wrist_z" type="fixed">
 		<parent link="left_lower_arm"/>
 		<child link="left_wrist"/>
 		<origin rpy="0 0 1.5707" xyz="0 0 -0.105"/>

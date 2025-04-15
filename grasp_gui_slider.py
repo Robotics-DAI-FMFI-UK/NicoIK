@@ -30,9 +30,58 @@ def apply_ik_solution(robot_id, ik_solution, joint_idxs):
         joint_values.append(f"{p.getJointInfo(robot_id, joint_idx)[1].decode('utf-8')}: {joint_pos:.4f} rad ({joint_pos*57.2958:.2f}°)")
     return joint_values
 
+def find_gripper_joints(robot_id):
+    """Find all joints related to the right fingers and return their indices."""
+    num_joints = p.getNumJoints(robot_id)
+    gripper_idxs = []
+    for joint_idx in range(num_joints):
+        joint_info = p.getJointInfo(robot_id, joint_idx)
+        joint_name = joint_info[1].decode("utf-8")
+        # Check if the joint name contains 'r_' and 'finger'
+        if 'right_' in joint_name and 'finger' in joint_name:
+            gripper_idxs.append(joint_idx)
+            print(joint_name)
+    print(f"Found gripper joints: {gripper_idxs}") # Optional: print found joints
+    return gripper_idxs
+
+def get_controllable_arm_joints(robot_id, num_joints):
+    """Get joint information for arm control (non-fixed joints), excluding gripper joints."""
+    joint_idxs = []
+    print("\n--- Controllable Arm Joints ---")
+    for joint_idx in range(num_joints):
+        joint_info = p.getJointInfo(robot_id, joint_idx)
+        joint_name = joint_info[1].decode("utf-8")
+        joint_type = joint_info[2]
+        
+        # Print all joint names and IDs for inspection
+        print(f"  Joint ID: {joint_idx}, Name: {joint_name}, Type: {joint_type}")
+
+        if joint_type != p.JOINT_FIXED:
+            # Exclude gripper joints from the main IK control list
+            if 'right_' not in joint_name or 'finger' not in joint_name: 
+                lower = joint_info[8]
+                upper = joint_info[9]
+                
+                if lower >= upper:
+                    # Handle cases with no limits or invalid limits
+                    print(f"    Warning: Joint {joint_idx} ('{joint_name}') has invalid limits ({lower}, {upper}). Defaulting to +/- pi.")
+                    lower, upper = -np.pi, np.pi # Default to reasonable limits if needed
+                    
+                joint_idxs.append(joint_idx)
+                print(f"    -> Selected for IK control.")
+            else:
+                print(f"    -> Skipped (Gripper Joint).")
+        else:
+             print(f"    -> Skipped (Fixed Joint).")
+
+    print(f"Selected Arm Joint Indices for IK: {joint_idxs}")
+    print("-------------------------------\n")
+    return joint_idxs
+
+
 def main():
     parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
-    parser.add_argument('--urdf', type=str, default='nico_grasp.urdf', help='Path to URDF file (default: nico_grasp.urdf)')
+    parser.add_argument('--urdf', type=str, default='nico_grasp_right.urdf', help='Path to URDF file (default: nico_grasp.urdf)')
     args = parser.parse_args()
 
     # Initialize PyBullet
@@ -74,21 +123,12 @@ def main():
         print("Error: Could not find end effector link in URDF")
         return
 
-    # Get joint information
-    joint_idxs = []
-    for joint_idx in range(num_joints):
-        joint_info = p.getJointInfo(robot_id, joint_idx)
-        joint_name = joint_info[1].decode("utf-8")
-        joint_type = joint_info[2]
-        
-        if joint_type != p.JOINT_FIXED:
-            lower = joint_info[8]
-            upper = joint_info[9]
-            
-            if lower >= upper:
-                lower, upper = -180, 180
-                
-            joint_idxs.append(joint_idx)
+    # Get joint information for arm control using the new function
+    joint_idxs = get_controllable_arm_joints(robot_id, num_joints)
+
+    # Find gripper joint indices
+    gripper_idxs = find_gripper_joints(robot_id)
+
 
     # Box control variables
     box_size = 0.03
@@ -152,7 +192,17 @@ def main():
             if ord('x') in keys and keys[ord('x')] & p.KEY_WAS_TRIGGERED:
                 use_second_target = not use_second_target
                 print(f"Switched target source: {'Initial state' if use_second_target else 'Goal State'}")
+            
+            # Check if 'c' key is pressed to close the gripper (set gripper joints to 0)
+            if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
+                print("Closing gripper (setting finger joints to -2)")
+                gripper_zero_solution = [-2.0] * len(gripper_idxs) # Create a list of zeros
+                apply_ik_solution(robot_id, gripper_zero_solution, gripper_idxs) # Apply to gripper joints
 
+            if ord('d') in keys and keys[ord('d')] & p.KEY_WAS_TRIGGERED:
+                print("Opening gripper (setting finger joints to 0)")
+                gripper_zero_solution = [0.0] * len(gripper_idxs) # Create a list of zeros
+                apply_ik_solution(robot_id, gripper_zero_solution, gripper_idxs) # Apply to gripper joints
             # --- Determine Target Position and Orientation based on flag ---
             if use_second_target:
                 # Use second box sliders for position
@@ -279,13 +329,6 @@ def main():
                 textColorRGB=color2, 
                 textSize=1.0
             )
-            
-            # Check keyboard events (IK already applied above)
-            # keys = p.getKeyboardEvents() # Already got keys at the start of the loop
-            if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
-                # Re-apply IK if needed (though it's already applied each loop with current target)
-                ik_solution = calculate_ik(robot_id, end_effector_index, target_pos, target_orientation_quat)
-                apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
             time.sleep(0.01)
     except KeyboardInterrupt:
