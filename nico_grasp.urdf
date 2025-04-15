@@ -290,16 +290,19 @@
 	</joint>
 	<link name="endeffector">
     	<visual>
-      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+      		<origin rpy="0 0 0" xyz="0 0.0 -0.025"/> <!-- Updated position -->
       		<geometry>
-        		<sphere radius="0.007"/>
+        		<cylinder length="0.05" radius="0.002"/>
       		</geometry>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
     	</visual>
   	</link>
 	<joint name="endeffector_joint" type="fixed">
     	<parent link="right_palm"/>
     	<child link="endeffector"/>
-    	<origin rpy="0 0 0" xyz="0.03 0.0 -0.05"/>
+    	<origin rpy="3.14 1.57 0" xyz="0.03 0.0 -0.05"/>
 	</joint>
 	<link name="r_middlefinger">
 		<visual>
