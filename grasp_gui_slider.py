@@ -4,12 +4,13 @@ import argparse
 import time
 import numpy as np
 
-def calculate_ik(robot_id, end_effector_index, box_pos, fixed_orientation):
+def calculate_ik(robot_id, end_effector_index, box_pos, orientation):   
     """Calculate inverse kinematics solution for the robot arm."""
     ik_solution = p.calculateInverseKinematics(
         robot_id,
         end_effector_index,
         box_pos,
+        targetOrientation=orientation,
         maxNumIterations=100,
         residualThreshold=0.001
     )
@@ -40,7 +41,7 @@ def main():
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     
     # Fixed orientation for IK (quaternion)
-    fixed_orientation = p.getQuaternionFromEuler([0, 0, 3.14])  # Fixed downward orientation
+    orientation = p.getQuaternionFromEuler([0, 0, 3.14])  # Fixed downward orientation
 
     # Create ground plane (90x60x3 cm)
     p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
@@ -102,6 +103,9 @@ def main():
     x_slider = p.addUserDebugParameter("Box X", 0.25, 0.5, 0.35)
     y_slider = p.addUserDebugParameter("Box Y", -0.25, 0.25, 0)
     z_slider = p.addUserDebugParameter("Box Z", 0.07, 0.4, 0.07)
+    roll_slider = p.addUserDebugParameter("Roll", -np.pi, np.pi, 0)
+    pitch_slider = p.addUserDebugParameter("Pitch", -np.pi, np.pi, 0)
+    yaw_slider = p.addUserDebugParameter("Yaw", -np.pi, np.pi, 3.14) # Default to downward
 
     # Main simulation loop
     p.setRealTimeSimulation(1)
@@ -111,7 +115,9 @@ def main():
         cameraPitch=-15,
         cameraTargetPosition=[0, 0, 0.3]
     )
-
+ 
+    orientation_line_id = None # Initialize desired orientation line ID tracker
+    actual_orientation_line_id = None # Initialize actual orientation line ID tracker
     try:
         while True:
             # Update box position from sliders
@@ -121,15 +127,58 @@ def main():
                 p.readUserDebugParameter(z_slider)
             ]
             p.resetBasePositionAndOrientation(box_id, box_pos, [0,0,0,1])
+ 
+            # Read orientation sliders and calculate quaternion
+            roll = p.readUserDebugParameter(roll_slider)
+            pitch = p.readUserDebugParameter(pitch_slider)
+            yaw = p.readUserDebugParameter(yaw_slider)
+            orientation = p.getQuaternionFromEuler([roll, pitch, yaw])
+ 
+            # Get current state of the end effector AFTER applying IK
+            link_state = p.getLinkState(robot_id, end_effector_index)
+            ee_pos = link_state[0] # World position
+            ee_ori_quat = link_state[1] # Actual world orientation (quaternion)
+
+            line_length = 0.1 # Length of visualization lines
+
+            # --- Visualize Desired Orientation (Red Line) ---
+            # Remove previous red line
+            if orientation_line_id is not None:
+                p.removeUserDebugItem(orientation_line_id)
+
+            # Calculate end point for the desired orientation line (originating from current ee_pos)
+            rot_matrix_desired = p.getMatrixFromQuaternion(orientation) # Use slider orientation
+            z_axis_direction_desired = [rot_matrix_desired[2], rot_matrix_desired[5], rot_matrix_desired[8]]
+            line_end_desired = [ee_pos[0] + z_axis_direction_desired[0] * line_length,
+                                ee_pos[1] + z_axis_direction_desired[1] * line_length,
+                                ee_pos[2] + z_axis_direction_desired[2] * line_length]
+
+            # Draw the new red line (Desired Orientation)
+            orientation_line_id = p.addUserDebugLine(ee_pos, line_end_desired, [1, 0, 0], 5) # Red line
+
+            # --- Visualize Actual Orientation (Green Line) ---
+            # Remove previous green line
+            if actual_orientation_line_id is not None:
+                p.removeUserDebugItem(actual_orientation_line_id)
+
+            # Calculate end point for the actual orientation line (originating from current ee_pos)
+            rot_matrix_actual = p.getMatrixFromQuaternion(ee_ori_quat) # Use actual EE orientation
+            z_axis_direction_actual = [rot_matrix_actual[2], rot_matrix_actual[5], rot_matrix_actual[8]]
+            line_end_actual = [ee_pos[0] + z_axis_direction_actual[0] * line_length,
+                               ee_pos[1] + z_axis_direction_actual[1] * line_length,
+                               ee_pos[2] + z_axis_direction_actual[2] * line_length]
+
+            # Draw the new green line (Actual Orientation)
+            actual_orientation_line_id = p.addUserDebugLine(ee_pos, line_end_actual, [0, 1, 0], 5) # Green line
             
             # Check keyboard events
             if args.control == 'auto':
-                ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, fixed_orientation)
+                ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, orientation)
                 apply_ik_solution(robot_id, ik_solution, joint_idxs)
             else:
                 keys = p.getKeyboardEvents()
                 if ord('r') in keys and keys[ord('r')] & p.KEY_WAS_TRIGGERED:
-                    ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, fixed_orientation)
+                    ik_solution = calculate_ik(robot_id, end_effector_index, box_pos, orientation)
                     apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
             time.sleep(0.01)
