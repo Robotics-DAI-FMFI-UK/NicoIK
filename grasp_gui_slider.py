@@ -3,6 +3,7 @@ import pybullet_data
 import argparse
 import time
 import numpy as np
+from grasper import Grasper
 
 def calculate_ik(robot_id, end_effector_index, box_pos, orientation):   
     """Calculate inverse kinematics solution for the robot arm."""
@@ -82,7 +83,28 @@ def get_controllable_arm_joints(robot_id, num_joints):
 def main():
     parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
     parser.add_argument('--urdf', type=str, default='nico_grasp_right.urdf', help='Path to URDF file (default: nico_grasp.urdf)')
+    parser.add_argument('--config', type=str, default='./nico_humanoid_upper_rh7d_ukba.json', help='Path to the motor config JSON (for real robot).')
+    parser.add_argument('--real_robot', action='store_true', default=False, help='Connect to and control the real robot.')
     args = parser.parse_args()
+
+    real_grasper = None
+    if args.real_robot:
+        print("Initializing Grasper for real robot connection...")
+        try:
+            grasper = Grasper(
+                urdf_path=args.urdf,
+                motor_config=args.config,
+                connect_pybullet=False, # Do not connect pybullet via Grasper
+                connect_robot=True,     # Connect to the real robot hardware
+                use_gui=False,          # No GUI needed for Grasper's pybullet instance
+            )
+            print("Grasper initialized successfully for real robot.")
+        except Exception as e:
+            print(f"Error initializing Grasper for real robot: {e}")
+            print("Proceeding with simulation only.")
+            args.real_robot = False # Force simulation if hardware connection fails
+
+
 
     # Initialize PyBullet
     physicsClient = p.connect(p.GUI)
