@@ -234,13 +234,13 @@ class Grasper:
 
     @staticmethod
     def rad2nicodeg(nicojoints, rads):
-        """Converts radians to Nico-specific degrees."""
+        """Converts radians to Nico-specific degrees. Returns a dictionary."""
         if isinstance(nicojoints, str):
             nicojoints = [nicojoints]
         if isinstance(rads, (int, float)):
             rads = [rads]
 
-        nicodegrees = []
+        nicodegrees_dict = {}
         for nicojoint, rad in zip(nicojoints, rads):
             # Ensure rad is a number before applying rad2deg
             if isinstance(rad, (int, float)):
@@ -250,19 +250,14 @@ class Grasper:
                     nicodegree = rad2deg(rad) * 4
                 else:
                     nicodegree = rad2deg(rad)
-                nicodegrees.append(nicodegree)
+                nicodegrees_dict[nicojoint] = nicodegree
             else:
                  # Handle cases where IK might return non-numeric values or None
                  print(f"Warning: Non-numeric radian value '{rad}' for joint '{nicojoint}'. Skipping conversion.")
-                 nicodegrees.append(None) # Or some other placeholder
+                 # Optionally add a placeholder like None to the dict, or just skip
+                 # nicodegrees_dict[nicojoint] = None
 
-        # Filter out None values if you only want valid degrees
-        valid_nicodegrees = [deg for deg in nicodegrees if deg is not None]
-
-        if len(nicojoints) == 1: # Check based on input length
-             return nicodegrees[0] if nicodegrees else None
-        return nicodegrees # Return the list potentially containing None
-
+        return nicodegrees_dict # Return the dictionary
 
     def _set_pose_hardware(self, pose_values):
         """Internal: Sends a pose command to the physical robot."""
@@ -374,12 +369,52 @@ class Grasper:
         self.perform_drop()
         print("--- Grasp Sequence Finished ---\n")
 
-    def perform_move(self):
-        """Moves the robot to the grasp pose."""
-        print("Moving to grasp pose...")
-        self.move_to_pose('grasp')
-        print("Moved to grasp pose.")
-        time.sleep(self.DELAY)
+    def perform_move(self, target_angles_deg=None):
+        """
+        Moves the robot arm to the specified target angles (degrees).
+        If target_angles_deg is None, moves to the predefined 'grasp' pose.
+
+        Args:
+            target_angles_deg (dict, optional): A dictionary mapping joint names
+                                                to target angles in degrees.
+                                                Defaults to None.
+        """
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot perform move.")
+            return
+
+        if target_angles_deg:
+            print(f"Moving arm to IK solution angles...")
+            success_count = 0
+            total_joints = 0
+            try:
+                for joint_name, angle_deg in target_angles_deg.items():
+                    # Check if the joint exists in the hardware interface (optional but good practice)
+                    # This depends on the nicomotion API, assuming setAngle handles unknown joints gracefully or raises an error
+                    if angle_deg is not None: # Check if conversion was successful
+                        total_joints += 1
+                        # print(f"  Setting {joint_name} to {angle_deg:.2f} deg") # Verbose logging
+                        self.robot.setAngle(joint_name, float(angle_deg), self.SPEED)
+                        success_count += 1
+                    else:
+                        print(f"  Skipping {joint_name} due to invalid angle.")
+
+                if success_count == total_joints and total_joints > 0:
+                    print("Arm moved to target angles.")
+                elif total_joints == 0:
+                     print("No valid target angles provided for move.")
+                else:
+                    print(f"Moved {success_count}/{total_joints} joints successfully.")
+
+            except Exception as e:
+                print(f"Error setting hardware angles during move: {e}")
+        else:
+            # Fallback to predefined grasp pose if no specific angles are given
+            print("Moving to predefined grasp pose...")
+            self.move_to_pose('grasp')
+            print("Moved to predefined grasp pose.")
+
+        time.sleep(self.DELAY) # Delay after the move completes
 
     def perform_grasp(self):
         """Closes the robot's hand and optionally lifts the arm."""
@@ -476,14 +511,16 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
     parser.add_argument("--simulate", action="store_true", help="Run only PyBullet simulation, don't connect to hardware.")
     parser.add_argument("--test-ik", action="store_true", help="Perform an IK calculation test.")
-    parser.add_argument("--pos", nargs=3, type=float, default=[0.3, -0.2, 0.2], help="Target position [x y z] for IK test.")
-    parser.add_argument( "--ori", nargs=3, type=float, default=[0, 0, 3.14], help="Target orientation [r p y] for IK test.")
+    parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")
+    parser.add_argument("--pos", nargs=3, type=float, default=[0.3, -0.2, 0.2], help="Target position [x y z] for IK test/move.")
+    parser.add_argument( "--ori", nargs=3, type=float, default=[0, 0, 3.14], help="Target orientation [r p y] for IK test/move.")
     args = parser.parse_args()
 
     connect_hw = not args.simulate
     grasper = None  # Initialize grasper to None
 
-    # Determine if GUI is needed
+    # Determine if GUI is needed for PyBullet (e.g., for visual debugging during simulation)
+    # Let's enable GUI if simulating AND testing IK for visualization
     use_gui_for_pybullet = args.simulate and args.test_ik
 
     print("Initializing Grasper...")
@@ -492,39 +529,71 @@ if __name__ == "__main__":
         motor_config=args.config,
         connect_pybullet=True,  # Always connect pybullet if simulating or testing IK
         connect_robot=connect_hw,
-        use_gui=use_gui_for_pybullet,
+        use_gui=use_gui_for_pybullet, # Use GUI based on flag
     )
 
-    ik_calculated_pose = None  # Store IK result if successful
+    ik_solution_rad = None
+    ik_solution_nico_deg = None # Store IK result in Nico degrees
 
-    if args.test_ik:
+    # Perform IK calculation if testing or controlling real robot
+    if args.test_ik or args.real_robot:
         if grasper.is_pybullet_connected:
-            print(f"\n--- Testing IK Calculation ---")
+            print(f"\n--- Calculating IK ---")
             print(f"Target Position: {args.pos}")
             print(f"Target Orientation (Euler): {args.ori}")
             ik_solution_rad = grasper.calculate_ik(args.pos, args.ori)
             if ik_solution_rad:
                 print(f"IK Solution (radians): {ik_solution_rad}")
-                ik_calculated_pose = ik_solution_rad  # Store for potential visualization
                 # Ensure joint_names are populated before converting
                 if grasper.joint_names:
+                    # Convert to Nico degrees dictionary
                     ik_solution_nico_deg = grasper.rad2nicodeg(
                         grasper.joint_names, ik_solution_rad
                     )
-                    print(f"IK Solution (Nico degrees): {ik_solution_nico_deg}")
+                    # Filter out None values if any conversion failed
+                    ik_solution_nico_deg = {k: v for k, v in ik_solution_nico_deg.items() if v is not None}
+                    print(f"IK Solution (Nico degrees dict): {ik_solution_nico_deg}")
                 else:
-                    print(
-                        "Could not convert to Nico degrees: Joint names not available."
-                    )
+                    print("Could not convert to Nico degrees: Joint names not available.")
             else:
                 print("IK calculation failed.")
-            print("--- IK Test Finished ---\n")
+            print("--- IK Calculation Finished ---\n")
         else:
-            print("Cannot perform IK test: PyBullet not connected.")
+            print("Cannot perform IK calculation: PyBullet not connected.")
+
+    # Execute actions on the real robot if requested and connected
+    if args.real_robot:
+        if grasper.is_robot_connected:
+            if ik_solution_nico_deg: # Check if IK calculation was successful and converted
+                print("\n--- Executing Sequence with IK Move ---")
+                # Use the calculated IK solution for the move
+                grasper.perform_move(target_angles_deg=ik_solution_nico_deg)
+                grasper.perform_grasp()
+                grasper.perform_drop()
+                print("--- Sequence Finished ---\n")
+            else:
+                print("Cannot execute sequence: IK calculation failed or did not produce valid angles.")
+        else:
+            print("Cannot execute on real robot: Hardware not connected.")
+    elif args.test_ik and use_gui_for_pybullet and ik_solution_rad:
+         # If simulating with GUI and IK was successful, set the pose in simulation
+         print("\n--- Visualizing IK Solution in PyBullet GUI ---")
+         grasper.set_pose_sim(ik_solution_rad)
+         print("IK solution visualized. Press Ctrl+C to exit.")
+         try:
+             # Keep the simulation running for visualization
+             while True:
+                 if grasper.is_pybullet_connected:
+                     p.stepSimulation() # Step simulation if needed
+                 time.sleep(0.1)
+         except KeyboardInterrupt:
+             print("Exiting visualization.")
+
     else:
-        # Execute grasp sequence steps individually
-        print("\n--- Executing Grasp Sequence Steps Individually ---")
-        grasper.perform_move()
-        grasper.perform_grasp()
-        grasper.perform_drop()
-        print("--- Grasp Sequence Steps Finished ---\n")
+        # No action if not testing IK with GUI or controlling real robot
+        print("\nNo action performed (use --real_robot to execute on hardware or --test-ik with --simulate for visualization).")
+
+
+    # Cleanup
+    if grasper:
+        grasper.disconnect()
