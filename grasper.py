@@ -472,41 +472,12 @@ class Grasper:
 # Main execution block
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
-    parser.add_argument(
-        "--urdf",
-        type=str,
-        default="./nico_upper_rh6d_r.urdf",
-        help="Path to the robot URDF file.",
-    )
-    parser.add_argument(
-        "--config",
-        type=str,
-        default="./nico_humanoid_upper_rh7d_ukba.json",
-        help="Path to the motor config JSON.",
-    )
-    parser.add_argument(
-        "--simulate",
-        action="store_true",
-        help="Run only PyBullet simulation, don't connect to hardware.",
-    )
-    parser.add_argument(
-        "--test-ik", action="store_true", help="Perform an IK calculation test."
-    )
-    parser.add_argument(
-        "--pos",
-        nargs=3,
-        type=float,
-        default=[0.3, -0.2, 0.1],
-        help="Target position [x y z] for IK test.",
-    )
-    parser.add_argument(
-        "--ori",
-        nargs=3,
-        type=float,
-        default=[0, 0, 3.14],
-        help="Target orientation [r p y] for IK test.",
-    )
-
+    parser.add_argument("--urdf", type=str, default="./nico_upper_rh6d_r.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
+    parser.add_argument("--simulate", action="store_true", help="Run only PyBullet simulation, don't connect to hardware.")
+    parser.add_argument("--test-ik", action="store_true", help="Perform an IK calculation test.")
+    parser.add_argument("--pos", nargs=3, type=float, default=[0.3, -0.2, 0.2], help="Target position [x y z] for IK test.")
+    parser.add_argument( "--ori", nargs=3, type=float, default=[0, 0, 3.14], help="Target orientation [r p y] for IK test.")
     args = parser.parse_args()
 
     connect_hw = not args.simulate

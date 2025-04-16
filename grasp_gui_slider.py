@@ -115,7 +115,7 @@ def main():
 
     # Create ground plane (90x60x3 cm)
     p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
-                                                           rgbaColor=[0.0, 0.6, 0.6, 1]),
+                                                           rgbaColor=[0.8, 0.7, 0.4, 1]),
                       baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025]),
                       baseMass=0, basePosition=[0.26, 0, 0.029])
     # Create tablet mesh
@@ -205,7 +205,7 @@ def main():
     orientation_diff_text_id = None # Initialize debug text ID tracker
     position_diff_text_id = None # Initialize position difference text ID tracker
     
-    use_second_target = False # Flag to switch between target boxes/orientations
+    use_second_target = True # Flag to switch between target boxes/orientations
     
     try:
         while True:
@@ -214,17 +214,20 @@ def main():
             if ord('x') in keys and keys[ord('x')] & p.KEY_WAS_TRIGGERED:
                 use_second_target = not use_second_target
                 print(f"Switched target source: {'Initial state' if use_second_target else 'Goal State'}")
+                #grasper.perform_move()
             
             # Check if 'c' key is pressed to close the gripper (set gripper joints to 0)
             if ord('c') in keys and keys[ord('c')] & p.KEY_WAS_TRIGGERED:
                 print("Closing gripper (setting finger joints to -2)")
                 gripper_zero_solution = [-2.0] * len(gripper_idxs) # Create a list of zeros
                 apply_ik_solution(robot_id, gripper_zero_solution, gripper_idxs) # Apply to gripper joints
+                #grasper.perform_grasp()
 
             if ord('d') in keys and keys[ord('d')] & p.KEY_WAS_TRIGGERED:
                 print("Opening gripper (setting finger joints to 0)")
                 gripper_zero_solution = [0.0] * len(gripper_idxs) # Create a list of zeros
                 apply_ik_solution(robot_id, gripper_zero_solution, gripper_idxs) # Apply to gripper joints
+                #grasper.perform_drop()
             # --- Determine Target Position and Orientation based on flag ---
             if use_second_target:
                 # Use second box sliders for position
