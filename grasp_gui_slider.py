@@ -81,28 +81,24 @@ def get_controllable_arm_joints(robot_id, num_joints):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
-    parser.add_argument('--urdf', type=str, default='nico_grasp_right.urdf', help='Path to URDF file (default: nico_grasp.urdf)')
-    parser.add_argument('--config', type=str, default='./nico_humanoid_upper_rh7d_ukba.json', help='Path to the motor config JSON (for real robot).')
-    parser.add_argument('--real_robot', action='store_true', default=False, help='Connect to and control the real robot.')
+    parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
+    parser.add_argument("--urdf", type=str, default="./nico_upper_rh6d_r.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
+    parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")
     args = parser.parse_args()
 
-    real_grasper = None
-    if args.real_robot:
-        print("Initializing Grasper for real robot connection...")
-        try:
-            grasper = Grasper(
-                urdf_path=args.urdf,
-                motor_config=args.config,
-                connect_pybullet=False, # Do not connect pybullet via Grasper
-                connect_robot=True,     # Connect to the real robot hardware
-                use_gui=False,          # No GUI needed for Grasper's pybullet instance
-            )
-            print("Grasper initialized successfully for real robot.")
-        except Exception as e:
-            print(f"Error initializing Grasper for real robot: {e}")
-            print("Proceeding with simulation only.")
-            args.real_robot = False # Force simulation if hardware connection fails
+    connect_hw = args.real_robot
+    grasper = None  # Initialize grasper to None
+    print("Initializing Grasper")
+    try:
+        grasper = Grasper(
+            urdf_path=args.urdf,
+            motor_config=args.config,
+            connect_robot=args.real_robot,     # Connect to the real robot hardware
+        )
+        print("Grasper initialized successfully for real robot.")
+    except Exception as e:
+        print(f"Error initializing Grasper for real robot: {e}")
 
 
 
@@ -228,6 +224,34 @@ def main():
                 gripper_zero_solution = [0.0] * len(gripper_idxs) # Create a list of zeros
                 apply_ik_solution(robot_id, gripper_zero_solution, gripper_idxs) # Apply to gripper joints
                 #grasper.perform_drop()
+            
+            if ord('m') in keys and keys[ord('m')] & p.KEY_WAS_TRIGGERED:
+                if grasper.is_pybullet_connected:
+                    print(f"\n--- Calculating IK ---")
+                    print(f"Target Position: {args.pos}")
+                    print(f"Target Orientation (Euler): {args.ori}")
+                    ik_solution_rad = grasper.calculate_ik(target_pos, target_ori)
+                    if ik_solution_rad:
+                        print(f"IK Solution (radians): {ik_solution_rad}")
+                        # Ensure joint_names are populated before converting
+                        if grasper.joint_names:
+                            # Convert to Nico degrees dictionary
+                            ik_solution_nico_deg = grasper.rad2nicodeg(
+                            grasper.joint_names, ik_solution_rad
+                            )
+                            # Filter out None values if any conversion failed
+                            ik_solution_nico_deg = {k: v for k, v in ik_solution_nico_deg.items() if v is not None}
+                            print(f"IK Solution (Nico degrees dict): {ik_solution_nico_deg}")
+                        else:
+                            print("Could not convert to Nico degrees: Joint names not available.")
+                    else:
+                        print("IK calculation failed.")
+                    print("--- IK Calculation Finished ---\n")
+                else:
+                    print("Cannot perform IK calculation: PyBullet not connected.")
+
+
+
             # --- Determine Target Position and Orientation based on flag ---
             if use_second_target:
                 # Use second box sliders for position

@@ -34,19 +34,27 @@ class Grasper:
         'l_indexfinger_x': -170.0, 'l_middlefingers_x': -180.0
     }
 
-    def __init__(self, urdf_path="./nico_upper_rh6d_r.urdf", motor_config='./nico_humanoid_upper_rh7d_ukba.json', connect_pybullet=True, connect_robot=True, use_gui=False):
+    def __init__(self, urdf_path="./nico_upper_rh6d_r.urdf", motor_config='./nico_humanoid_upper_rh7d_ukba.json', connect_robot=True):
         """
         Initializes the Grasper class.
 
         Args:
             urdf_path (str): Path to the robot URDF file.
             motor_config (str): Path to the motor configuration JSON file for nicomotion.
-            connect_pybullet (bool): Whether to connect to PyBullet simulation.
-            connect_robot (bool): Whether to attempt connection to the physical robot.
-            use_gui (bool): If connecting to PyBullet, whether to use GUI or DIRECT mode.
+            connect_robot (bool): Whether to attempt connection to the physical robot..
         """
         set_printoptions(precision=3, suppress=True)
 
+        self.head = ['head_z', 'head_y']    
+        self.right_arm = ['r_shoulder_z', 'r_shoulder_y', 'r_arm_x', 'r_elbow_y', 'r_wrist_z', 'r_wrist_x']
+        self.right_gripper = ['r_thumb_z', 'r_thumb_x', 'r_indexfinger_x', 'r_middlefingers_x']
+        self.left_arm = ['l_shoulder_z', 'l_shoulder_y', 'l_arm_x', 'l_elbow_y', 'l_wrist_z', 'l_wrist_x']
+        self.left_gripper = ['l_thumb_z', 'l_thumb_x', 'l_indexfinger_x', 'l_middlefingers_x']
+        self.head_actuated = []  
+        self.right_arm_actuated = [] # List to store actuated joints for the right arm
+        self.right_gripper_actuated = [] # List to store actuated joints for the right gripper
+        self.left_arm_actuated = [] # List to store actuated joints for the left arm 
+        self.left_gripper_actuated = []
         self.robot_id = None
         self.num_joints = 0
         self.joints_limits_l = []
@@ -62,31 +70,28 @@ class Grasper:
         self.is_pybullet_connected = False
         self.is_robot_connected = False
 
-        if connect_pybullet:
-            try:
-                # Connect to PyBullet (GUI or DIRECT)
-                connection_mode = p.GUI if use_gui else p.DIRECT
-                self.physics_client = p.connect(connection_mode)
-                self.is_pybullet_connected = True
-                print(f"Connected to PyBullet ({'GUI' if use_gui else 'DIRECT'} mode).")
+        try:
+            # Connect to PyBullet (GUI or DIRECT)
+            self.physics_client = p.connect(p.DIRECT)
+            self.is_pybullet_connected = True
+            print(f"Connected to PyBullet")
 
-                if use_gui:
-                    p.setAdditionalSearchPath(pybullet_data.getDataPath())
-                    p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
-                    p.setGravity(0, 0, -9.81)
-                    # Load ground plane only in GUI mode for visualization
-                    p.loadURDF("plane.urdf")
-                # Load robot slightly above ground in GUI mode
-                start_pos = [0, 0, 0.5] if use_gui else [0, 0, 0]
-                self.robot_id = p.loadURDF(urdf_path, start_pos, useFixedBase=use_gui) # Fix base in GUI
-                self.num_joints = p.getNumJoints(self.robot_id)
-                self._get_joints_limits()
-                print(f"Loaded URDF: {urdf_path}")
-                print(f"Found {self.num_joints} joints.")
-                print(f"End effector index: {self.end_effector_index}")
-            except Exception as e:
-                print(f"Error connecting to PyBullet or loading URDF: {e}")
-                self.is_pybullet_connected = False
+            # Load robot slightly above ground in GUI mode
+            self.robot_id =p.loadURDF(args.urdf, useFixedBase=True)
+            self.num_joints = p.getNumJoints(self.robot_id)
+            self._get_joints_limits()
+            print(f"Loaded URDF: {urdf_path}")
+            print(f"Found {self.num_joints} joints.")
+            print(f"Found {len(self.joint_names)} movable joints.")
+            print (f"Head joints: {self.head_actuated}")
+            print (f"Right arm joints: {self.right_arm_actuated}")
+            print (f"Left arm joints: {self.left_arm_actuated}")
+            print (f"Right gripper joints: {self.right_gripper_actuated}")
+            print (f"Left gripper joints: {self.left_gripper_actuated}")
+            print(f"End effector index: {self.end_effector_index}")
+        except Exception as e:
+            print(f"Error connecting to PyBullet or loading URDF: {e}")
+            self.is_pybullet_connected = False
 
 
         if connect_robot and NICOMOTION_AVAILABLE and Motion is not None:
@@ -139,6 +144,21 @@ class Grasper:
                 joints_limits_u.append(joint_info[9])
                 joints_ranges.append(joint_info[9] - joint_info[8])
                 joints_rest_poses.append((joint_info[9] + joint_info[8]) / 2)
+
+                if decoded_joint_name in self.right_arm:
+                    self.right_arm_actuated.append(decoded_joint_name)
+
+                if decoded_joint_name in self.left_arm:
+                    self.left_arm_actuated.append(decoded_joint_name)
+                
+                if decoded_joint_name in self.right_gripper:
+                    self.right_gripper_actuated.append(decoded_joint_name)
+
+                if decoded_joint_name in self.left_gripper:
+                    self.left_gripper_actuated.append(decoded_joint_name)
+
+                if decoded_joint_name in self.head:
+                    self.head_actuated.append(decoded_joint_name)
 
             if link_name_bytes.decode("utf-8") == 'endeffector': # Make sure your URDF defines this link name
                 end_effector_index = jid
@@ -509,57 +529,31 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
     parser.add_argument("--urdf", type=str, default="./nico_upper_rh6d_r.urdf", help="Path to the robot URDF file.")
     parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
-    parser.add_argument("--simulate", action="store_true", help="Run only PyBullet simulation, don't connect to hardware.")
-    parser.add_argument("--test-ik", action="store_true", help="Perform an IK calculation test.")
     parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")
     parser.add_argument("--pos", nargs=3, type=float, default=[0.3, -0.2, 0.2], help="Target position [x y z] for IK test/move.")
-    parser.add_argument( "--ori", nargs=3, type=float, default=[0, 0, 3.14], help="Target orientation [r p y] for IK test/move.")
+    parser.add_argument( "--ori", nargs=3, type=float, default=[0, 0, 0], help="Target orientation [r p y] for IK test/move.")
     args = parser.parse_args()
 
-    connect_hw = not args.simulate
+    connect_hw = args.real_robot
     grasper = None  # Initialize grasper to None
 
-    # Determine if GUI is needed for PyBullet (e.g., for visual debugging during simulation)
-    # Let's enable GUI if simulating AND testing IK for visualization
-    use_gui_for_pybullet = args.simulate and args.test_ik
 
     print("Initializing Grasper...")
-    grasper = Grasper(
-        urdf_path=args.urdf,
-        motor_config=args.config,
-        connect_pybullet=True,  # Always connect pybullet if simulating or testing IK
-        connect_robot=connect_hw,
-        use_gui=use_gui_for_pybullet, # Use GUI based on flag
-    )
+    try:
+        grasper = Grasper(
+            urdf_path=args.urdf,
+            motor_config=args.config,
+            connect_robot=args.real_robot,     # Connect to the real robot hardware
+        )
+        print("Grasper initialized successfully for real robot.")
+    except Exception as e:
+        print(f"Error initializing Grasper for real robot: {e}")
 
     ik_solution_rad = None
     ik_solution_nico_deg = None # Store IK result in Nico degrees
 
     # Perform IK calculation if testing or controlling real robot
-    if args.test_ik or args.real_robot:
-        if grasper.is_pybullet_connected:
-            print(f"\n--- Calculating IK ---")
-            print(f"Target Position: {args.pos}")
-            print(f"Target Orientation (Euler): {args.ori}")
-            ik_solution_rad = grasper.calculate_ik(args.pos, args.ori)
-            if ik_solution_rad:
-                print(f"IK Solution (radians): {ik_solution_rad}")
-                # Ensure joint_names are populated before converting
-                if grasper.joint_names:
-                    # Convert to Nico degrees dictionary
-                    ik_solution_nico_deg = grasper.rad2nicodeg(
-                        grasper.joint_names, ik_solution_rad
-                    )
-                    # Filter out None values if any conversion failed
-                    ik_solution_nico_deg = {k: v for k, v in ik_solution_nico_deg.items() if v is not None}
-                    print(f"IK Solution (Nico degrees dict): {ik_solution_nico_deg}")
-                else:
-                    print("Could not convert to Nico degrees: Joint names not available.")
-            else:
-                print("IK calculation failed.")
-            print("--- IK Calculation Finished ---\n")
-        else:
-            print("Cannot perform IK calculation: PyBullet not connected.")
+    
 
     # Execute actions on the real robot if requested and connected
     if args.real_robot:
@@ -575,23 +569,36 @@ if __name__ == "__main__":
                 print("Cannot execute sequence: IK calculation failed or did not produce valid angles.")
         else:
             print("Cannot execute on real robot: Hardware not connected.")
-    elif args.test_ik and use_gui_for_pybullet and ik_solution_rad:
-         # If simulating with GUI and IK was successful, set the pose in simulation
-         print("\n--- Visualizing IK Solution in PyBullet GUI ---")
-         grasper.set_pose_sim(ik_solution_rad)
-         print("IK solution visualized. Press Ctrl+C to exit.")
-         try:
-             # Keep the simulation running for visualization
-             while True:
-                 if grasper.is_pybullet_connected:
-                     p.stepSimulation() # Step simulation if needed
-                 time.sleep(0.1)
-         except KeyboardInterrupt:
-             print("Exiting visualization.")
 
     else:
+        if grasper.is_pybullet_connected:
+            print(f"\n--- Calculating IK ---")
+            print(f"Target Position: {args.pos}")
+            print(f"Target Orientation (Euler): {args.ori}")
+            ik_solution_rad = grasper.calculate_ik(args.pos, args.ori)
+            if ik_solution_rad:
+                #print(f"IK Solution (radians): {ik_solution_rad}")
+                # Ensure joint_names are populated before converting
+                if grasper.joint_names:
+                    # Convert to Nico degrees dictionary
+                    ik_solution_nico_deg = grasper.rad2nicodeg(
+                        grasper.joint_names, ik_solution_rad
+                    )
+                    # Filter out None values if any conversion failed
+                    ik_solution_nico_deg = {k: v for k, v in ik_solution_nico_deg.items() if v is not None}
+                    if ik_solution_nico_deg:
+                        print("IK Solution (Nico degrees dict):")
+                        for joint, angle in ik_solution_nico_deg.items():
+                            print(f"{joint}: {angle}")
+                else:
+                    print("Could not convert to Nico degrees: Joint names not available.")
+            else:
+                print("IK calculation failed.")
+            print("--- IK Calculation Finished ---\n")
+        else:
+            print("Cannot perform IK calculation: PyBullet not connected.")
         # No action if not testing IK with GUI or controlling real robot
-        print("\nNo action performed (use --real_robot to execute on hardware or --test-ik with --simulate for visualization).")
+        print("\nNo action performed (use --real_robot to execute on hardware.")
 
 
     # Cleanup
