@@ -82,23 +82,23 @@ def get_controllable_arm_joints(robot_id, num_joints):
 
 def main():
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
-    parser.add_argument("--urdf", type=str, default="./nico_upper_rh6d_r.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--urdf", type=str, default="./nico_grasper.urdf", help="Path to the robot URDF file.")
     parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
     parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")
     args = parser.parse_args()
 
     connect_hw = args.real_robot
     grasper = None  # Initialize grasper to None
-    print("Initializing Grasper")
-    try:
-        grasper = Grasper(
-            urdf_path=args.urdf,
-            motor_config=args.config,
-            connect_robot=args.real_robot,     # Connect to the real robot hardware
-        )
-        print("Grasper initialized successfully for real robot.")
-    except Exception as e:
-        print(f"Error initializing Grasper for real robot: {e}")
+    #print("Initializing Grasper")
+    #try:
+    #    grasper = Grasper(
+    #        urdf_path=args.urdf,
+    #        motor_config=args.config,
+    #        connect_robot=args.real_robot,     # Connect to the real robot hardware
+    #    )
+    #    print("Grasper initialized successfully for real robot.")
+    #except Exception as e:
+    #    print(f"Error initializing Grasper for real robot: {e}")
 
 
 

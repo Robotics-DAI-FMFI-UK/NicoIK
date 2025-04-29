@@ -464,27 +464,51 @@ class Grasper:
 
     ## IK related methods ##
 
-    def move_arm(self, filtered_ik_solution):
+    def move_arm(self, pos, ori, side):
         """
-        Moves the robot arm to the specified target angles (degrees) based on the filtered IK solution.
+        Filters the IK solution based on the specified side (left or right) and moves the robot arm
+        to the specified target angles (degrees).
 
         Args:
-            filtered_ik_solution (dict): A dictionary mapping joint names to target angles in degrees.
+            ik_solution_nico_deg (dict): Dictionary of joint names and their angles.
+            side (str): Specify 'left' or 'right' to filter for the respective arm.
         """
+        ik_solution_nico_deg = self.rad2nicodeg(self.joint_names, self.calculate_ik(pos, ori))
+
+
         if not self.is_robot_connected:
             print("Robot hardware not connected. Cannot move arm.")
             return
 
-        if not filtered_ik_solution:
+        if not ik_solution_nico_deg:
             print("No valid IK solution provided. Cannot move arm.")
             return
 
-        print("Moving arm to filtered IK solution angles...")
+        # Determine which arm to filter
+        if side.lower() == 'right':
+            arm_actuated = self.right_arm_actuated
+        elif side.lower() == 'left':
+            arm_actuated = self.left_arm_actuated
+        else:
+            print("Invalid side specified. Use 'left' or 'right'.")
+            return
+
+        # Filter the IK solution
+        filtered_solution = {
+            joint: angle for joint, angle in ik_solution_nico_deg.items()
+            if joint in arm_actuated
+        }
+
+        if not filtered_solution:
+            print(f"No valid joints found for the {side} arm in the IK solution.")
+            return
+
+        print(f"Moving {side} arm to filtered IK solution angles...")
         success_count = 0
-        total_joints = len(filtered_ik_solution)
+        total_joints = len(filtered_solution)
 
         try:
-            for joint_name, angle_deg in filtered_ik_solution.items():
+            for joint_name, angle_deg in filtered_solution.items():
                 if angle_deg is not None:  # Ensure the angle is valid
                     # Execute the movement command
                     self.robot.setAngle(joint_name, float(angle_deg), self.SPEED)
@@ -494,12 +518,11 @@ class Grasper:
                     print(f"  Skipping {joint_name} due to invalid angle.")
             time.sleep(self.DELAY)  # Delay after the move completes
             if success_count == total_joints:
-                print("Arm successfully moved to all target angles.")
+                print(f"{side.capitalize()} arm successfully moved to all target angles.")
             else:
                 print(f"Moved {success_count}/{total_joints} joints successfully.")
-
         except Exception as e:
-            print(f"Error moving arm: {e}")
+            print(f"Error moving {side} arm: {e}")
     
     def close_gripper(self, side):
         """
@@ -556,8 +579,8 @@ class Grasper:
         print(f"Opening {side} gripper...")
         try:
             for joint_name in gripper_actuated:
-                self.robot.setAngle(joint_name, 170, self.SPEEDF)
-                print(f"  Set {joint_name} to 170 degrees.")
+                self.robot.setAngle(joint_name, -170, self.SPEEDF)
+                print(f"  Set {joint_name} to -170 degrees.")
             time.sleep(self.DELAY) # Delay after the move completes
             print(f"{side.capitalize()} gripper opened.")
         except Exception as e:
@@ -732,12 +755,29 @@ if __name__ == "__main__":
         if grasper.is_robot_connected:
             if ik_solution_nico_deg: # Check if IK calculation was successful and converted
                 print("\n--- Executing Sequence with IK Move ---")
-                filtered_ik_solution = grasper.filter_arm_ik_solution(ik_solution_nico_deg,args.side)
-                grasper.move_arm(filtered_ik_solution) # Move arm in simulation to test IK solution
-                grasper.close_gripper(args.side) # Close right gripper
                 grasper.open_gripper(args.side)
-                grasper.perform_drop()
-                time.sleep(1)
+                #Init pose
+                grasper.move_arm([0, -0.3, 0.5], [0,-1.57,0], args.side)
+                # Pick object
+                grasper.move_arm([args.pos[0],args.pos[1],args.pos[2]+0.2], args.ori, args.side)
+                grasper.move_arm(args.pos, args.ori, args.side)
+                grasper.close_gripper(args.side) # Close right gripper
+                #Lift                
+                grasper.move_arm([args.pos[0],args.pos[1],args.pos[2]+0.2], args.ori, args.side)
+                #Move to drop pose
+                grasper.move_arm([0.35,-0.4,0.2], args.ori, args.side)
+                # Drop object
+                grasper.open_gripper(args.side)
+                grasper.move_arm([0.2,-0.4,0.2], args.ori, args.side)
+                grasper.move_arm([0.2,-0.4,0.11], args.ori, args.side)
+                grasper.close_gripper(args.side)
+                grasper.move_arm([0.2,-0.4,0.3], args.ori, args.side)
+                grasper.move_arm([args.pos[0],args.pos[1],args.pos[2]+0.2], args.ori, args.side)
+                grasper.move_arm(args.pos, args.ori, args.side)
+                grasper.open_gripper(args.side)
+                #Init pose
+                grasper.move_arm([0, -0.3, 0.5], [0,-1.57,0], args.side)
+
                 print("--- Sequence Finished ---\n")
             else:
                 print("Cannot execute sequence: IK calculation failed or did not produce valid angles.")
