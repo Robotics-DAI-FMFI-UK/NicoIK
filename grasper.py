@@ -13,9 +13,9 @@ except ImportError:
 
 class Grasper:
     # Constants
-    SPEED = 0.03
+    SPEED = 0.05
     SPEEDF = 0.03
-    DELAY = 3
+    DELAY = 1
     REPEAT = 1
 
     # Predefined poses (consider making these configurable or loading from file)
@@ -543,10 +543,10 @@ class Grasper:
         try:
             for joint_name in gripper_actuated:
                 if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
-                    self.robot.setAngle(joint_name, 180, self.SPEEDF)
+                    self.robot.setAngle(joint_name, 180, self.SPEED)
                     print(f"  Set {joint_name} to 180 degrees.")    
                 else:
-                    self.robot.setAngle(joint_name, 20, self.SPEEDF)
+                    self.robot.setAngle(joint_name, 20, self.SPEED)
                     print(f"  Set {joint_name} to 20 degrees.")
             time.sleep(self.DELAY) # Delay after the move completes
             print(f"{side.capitalize()} gripper closed.")
@@ -575,7 +575,7 @@ class Grasper:
         print(f"Opening {side} gripper...")
         try:
             for joint_name in gripper_actuated:
-                self.robot.setAngle(joint_name, -170, self.SPEEDF)
+                self.robot.setAngle(joint_name, -170, self.SPEED)
                 print(f"  Set {joint_name} to -170 degrees.")
             time.sleep(self.DELAY) # Delay after the move completes
             print(f"{side.capitalize()} gripper opened.")
