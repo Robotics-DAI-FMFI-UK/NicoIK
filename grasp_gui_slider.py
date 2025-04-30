@@ -3,7 +3,35 @@ import pybullet_data
 import argparse
 import time
 import numpy as np
+from numpy import rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean
+
 from grasper import Grasper
+
+def rad2nicodeg(nicojoints, rads):
+        """Converts radians to Nico-specific degrees. Returns a dictionary."""
+        if isinstance(nicojoints, str):
+            nicojoints = [nicojoints]
+        if isinstance(rads, (int, float)):
+            rads = [rads]
+
+        nicodegrees_dict = {}
+        for nicojoint, rad in zip(nicojoints, rads):
+            # Ensure rad is a number before applying rad2deg
+            if isinstance(rad, (int, float)):
+                if nicojoint == 'r_wrist_z':
+                    nicodegree = rad2deg(rad) * 2
+                elif nicojoint == 'r_wrist_x':
+                    nicodegree = rad2deg(rad) * 4
+                else:
+                    nicodegree = rad2deg(rad)
+                nicodegrees_dict[nicojoint] = nicodegree
+            else:
+                 # Handle cases where IK might return non-numeric values or None
+                 print(f"Warning: Non-numeric radian value '{rad}' for joint '{nicojoint}'. Skipping conversion.")
+                 # Optionally add a placeholder like None to the dict, or just skip
+                 # nicodegrees_dict[nicojoint] = None
+
+        return nicodegrees_dict # Return the dictionary
 
 def calculate_ik(robot_id, end_effector_index, box_pos, orientation):   
     """Calculate inverse kinematics solution for the robot arm."""
@@ -48,6 +76,7 @@ def find_gripper_joints(robot_id):
 def get_controllable_arm_joints(robot_id, num_joints):
     """Get joint information for arm control (non-fixed joints), excluding gripper joints."""
     joint_idxs = []
+    joint_names = []
     print("\n--- Controllable Arm Joints ---")
     for joint_idx in range(num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
@@ -69,6 +98,7 @@ def get_controllable_arm_joints(robot_id, num_joints):
                     lower, upper = -np.pi, np.pi # Default to reasonable limits if needed
                     
                 joint_idxs.append(joint_idx)
+                joint_names.append(joint_name)
                 print(f"    -> Selected for IK control.")
             else:
                 print(f"    -> Skipped (Gripper Joint).")
@@ -77,7 +107,7 @@ def get_controllable_arm_joints(robot_id, num_joints):
 
     print(f"Selected Arm Joint Indices for IK: {joint_idxs}")
     print("-------------------------------\n")
-    return joint_idxs
+    return joint_idxs, joint_names
 
 
 def main():
@@ -88,13 +118,12 @@ def main():
     args = parser.parse_args()
 
     connect_hw = args.real_robot
-    grasper = None  # Initialize grasper to None
-    #print("Initializing Grasper")
+    #print("Initializing Grasper...")
     #try:
     #    grasper = Grasper(
-    #        urdf_path=args.urdf,
-    #        motor_config=args.config,
-    #        connect_robot=args.real_robot,     # Connect to the real robot hardware
+    #        urdf_path="./nico_grasper.urdf",
+    #        motor_config="./nico_humanoid_upper_rh7d_ukba.json",
+    #        connect_robot=True,     # Connect to the real robot hardware
     #    )
     #    print("Grasper initialized successfully for real robot.")
     #except Exception as e:
@@ -134,7 +163,7 @@ def main():
     for joint_idx in range(num_joints):
         joint_info = p.getJointInfo(robot_id, joint_idx)
         link_name = joint_info[12].decode("utf-8")
-        if link_name == 'endeffector':
+        if link_name == 'endeffectol':
             end_effector_index = joint_idx
             break
     if end_effector_index == -1:
@@ -142,7 +171,7 @@ def main():
         return
 
     # Get joint information for arm control using the new function
-    joint_idxs = get_controllable_arm_joints(robot_id, num_joints)
+    joint_idxs, joint_names = get_controllable_arm_joints(robot_id, num_joints)
 
     # Find gripper joint indices
     gripper_idxs = find_gripper_joints(robot_id)
@@ -159,7 +188,7 @@ def main():
 
     # Second box control variables
     box2_size = 0.03
-    box2_initial_pos = [0.0, -0.3, 0.5]
+    box2_initial_pos = [0.0, 0.3, 0.5]
     box2_id = p.createMultiBody(
         baseMass=0, # Visual only
         baseCollisionShapeIndex=-1, # No collision
@@ -178,7 +207,7 @@ def main():
 
     # Create sliders for second box position control
     x2_slider = p.addUserDebugParameter("Init X", -0.2, 0.2, box2_initial_pos[0])
-    y2_slider = p.addUserDebugParameter("Init Y", -0.6, 0.2, box2_initial_pos[1])
+    y2_slider = p.addUserDebugParameter("Init Y", -0.6, 0.6, box2_initial_pos[1])
     z2_slider = p.addUserDebugParameter("Init Z", 0.2, 0.7, box2_initial_pos[2])
 
     # Create additional init sliders for Yaw, Pitch, Roll
@@ -226,29 +255,7 @@ def main():
                 #grasper.perform_drop()
             
             if ord('m') in keys and keys[ord('m')] & p.KEY_WAS_TRIGGERED:
-                if grasper.is_pybullet_connected:
-                    print(f"\n--- Calculating IK ---")
-                    print(f"Target Position: {args.pos}")
-                    print(f"Target Orientation (Euler): {args.ori}")
-                    ik_solution_rad = grasper.calculate_ik(target_pos, target_ori)
-                    if ik_solution_rad:
-                        print(f"IK Solution (radians): {ik_solution_rad}")
-                        # Ensure joint_names are populated before converting
-                        if grasper.joint_names:
-                            # Convert to Nico degrees dictionary
-                            ik_solution_nico_deg = grasper.rad2nicodeg(
-                            grasper.joint_names, ik_solution_rad
-                            )
-                            # Filter out None values if any conversion failed
-                            ik_solution_nico_deg = {k: v for k, v in ik_solution_nico_deg.items() if v is not None}
-                            print(f"IK Solution (Nico degrees dict): {ik_solution_nico_deg}")
-                        else:
-                            print("Could not convert to Nico degrees: Joint names not available.")
-                    else:
-                        print("IK calculation failed.")
-                    print("--- IK Calculation Finished ---\n")
-                else:
-                    print("Cannot perform IK calculation: PyBullet not connected.")
+                grasper.move_arm([0.35,-0.4,0.2], args.ori, args.side)
 
 
 
@@ -350,6 +357,12 @@ def main():
             orientation_diff_text_id = p.addUserDebugText(
                 orientation_diff_text, 
                 textPosition=[0.05, 0.0, 0.8], # Position the text in the GUI
+                textColorRGB=color, 
+                textSize=1.0
+            )
+            orientation_diff_text_id = p.addUserDebugText(
+                str(rad2nicodeg(joint_names, ik_solution)), 
+                textPosition=[0.05, -2.0, 0.5], # Position the text in the GUI
                 textColorRGB=color, 
                 textSize=1.0
             )

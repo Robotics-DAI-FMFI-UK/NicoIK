@@ -62,6 +62,8 @@ class Grasper:
         self.link_names = []
         self.joint_indices = [] # List of movable joint indices
         self.joint_name_to_index = {} # Map from joint name to index
+        self.end_effector_index_r = -1
+        self.end_effector_index_l = -1
         self.end_effector_index = -1
         self.robot = None # For nicomotion hardware interface
         self.is_pybullet_connected = False
@@ -85,7 +87,8 @@ class Grasper:
             print (f"Left arm joints: {self.left_arm_actuated}")
             print (f"Right gripper joints: {self.right_gripper_actuated}")
             print (f"Left gripper joints: {self.left_gripper_actuated}")
-            print(f"End effector index: {self.end_effector_index}")
+            print(f"Left end effector index: {self.end_effector_index_l}")
+            print(f"Right end effector index: {self.end_effector_index_r}")
         except Exception as e:
             print(f"Error connecting to PyBullet or loading URDF: {e}")
             self.is_pybullet_connected = False
@@ -158,7 +161,9 @@ class Grasper:
                     self.head_actuated.append(decoded_joint_name)
 
             if link_name_bytes.decode("utf-8") == 'endeffector': # Make sure your URDF defines this link name
-                end_effector_index = jid
+                end_effector_index_r = jid
+            if link_name_bytes.decode("utf-8") == 'endeffectol': # Make sure your URDF defines this link name
+                end_effector_index_l = jid
 
         self.joints_limits_l = joints_limits_l
         self.joints_limits_u = joints_limits_u
@@ -168,10 +173,11 @@ class Grasper:
         self.link_names = link_names
         self.joint_indices = joint_indices # List of movable joint indices
         self.joint_name_to_index = joint_name_to_index # Map name -> index
-        self.end_effector_index = end_effector_index
+        self.end_effector_index_r = end_effector_index_r
+        self.end_effector_index_l = end_effector_index_l
 
 
-    def calculate_ik(self, pos, ori_euler):
+    def calculate_ik(self, side, pos, ori_euler):
         """
         Calculates Inverse Kinematics for a given end-effector pose.
         Assumes the URDF defines the correct kinematic chain leading to end_effector_index.
@@ -188,6 +194,9 @@ class Grasper:
         if not self.is_pybullet_connected:
             print("PyBullet not connected. Cannot calculate IK.")
             return None
+        
+        self.end_effector_index = self.end_effector_index_r if side == 'right' else self.end_effector_index_l
+        
         if self.end_effector_index < 0:
             print("End effector index not found. Cannot calculate IK.")
             return None
@@ -469,7 +478,7 @@ class Grasper:
             ik_solution_nico_deg (dict): Dictionary of joint names and their angles.
             side (str): Specify 'left' or 'right' to filter for the respective arm.
         """
-        ik_solution_nico_deg = self.rad2nicodeg(self.joint_names, self.calculate_ik(pos, ori))
+        ik_solution_nico_deg = self.rad2nicodeg(self.joint_names, self.calculate_ik(side,pos, ori))
 
 
         if not self.is_robot_connected:

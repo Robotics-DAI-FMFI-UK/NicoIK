@@ -615,11 +615,14 @@
 		<limit effort="30" lower="-.78" upper="0.78" velocity="1"/>
 	</joint>
     <link name="endeffectol">
-    	<visual>
-      		<origin rpy="0 0 0" xyz="0 0.0 0.0"/>
+		<visual>
+      		<origin rpy="0 0 0" xyz="0 0.0 0.025"/> <!-- Updated position -->
       		<geometry>
-        		<sphere radius="0.007"/>
+        		<cylinder length="0.05" radius="0.002"/>
       		</geometry>
+			<material name="blue">
+      			<color rgba="0 0 1 0.5"/> <!-- RGBA: Red Green Blue Alpha (opacity) -->
+    		</material>
     	</visual>
         <inertial>
 		    <mass value="0.0000332"/>
@@ -629,7 +632,7 @@
 	<joint name="endeffectol_joint" type="fixed">
     	<parent link="left_palm"/>
     	<child link="endeffectol"/>
-    	<origin rpy="0 0 0" xyz="0.00 -0.02 -0.11"/>
+    	<origin rpy="3.14 1.57 -3.14" xyz="-0.03 0.0 -0.05"/>
 	</joint>
 	<link name="l_middlefinger">
 		<visual>
@@ -718,5 +721,49 @@
 		<axis xyz="0 1 0"/>
 		<limit effort="30" lower="0" upper="2.57" velocity="1"/>
 	</joint>
+	<link name="left_thumb">
+		<visual>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<material name="finger_color">
+				<color rgba="0.74902 0.74902 0.74902 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="mesh/finger.stl"/>
+			</geometry>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="0.000009"/>
+			<inertia ixx="0" ixy="0" ixz="-0" iyy="0" iyz="0" izz="0"/>
+			<origin rpy="0 0 0" xyz="0.005409 0.000556 -0.005751"/>
+		</inertial>
+	</link>
+    
+    <link name="l_thumb_intermediate_link">
+        <inertial>
+		    <mass value="0.0000332"/>
+		    <inertia ixx="0.000015" ixy="0.000001" ixz="-0.000004" iyy="0.000017" iyz="0.000004" izz="0.000006"/>
+		</inertial>
+    </link>
+    <joint name="l_thumb_x" type="revolute">
+        <parent link="left_palm"/>
+        <child link="l_thumb_intermediate_link"/>
+        <origin rpy="0.3 1 1.4" xyz="-0.008 -0.020 -0.028"/>
+        <axis xyz="2 1 0"/>
+        <limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+    </joint>
+
+    <joint name="l_thumb_z" type="revolute">
+        <parent link="l_thumb_intermediate_link"/>
+        <child link="left_thumb"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit effort="30" lower="-2.57" upper="0" velocity="1"/>
+    </joint>
 </robot>
 
