@@ -115,6 +115,9 @@ def main():
     parser.add_argument("--urdf", type=str, default="./nico_grasper.urdf", help="Path to the robot URDF file.")
     parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
     parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")
+    parser.add_argument("-i", "--init_pos", nargs=3, type=float, default = [0.0, -0.3, 0.5], help="Target position for the robot end effector as a list of three floats.")
+    parser.add_argument("-g", "--goal_pos", nargs=3, type=float, default = [0.3, -0.3, 0.07], help="Target position for the robot end effector as a list of three floats.")
+    
     args = parser.parse_args()
 
     connect_hw = args.real_robot
@@ -129,7 +132,7 @@ def main():
     #except Exception as e:
     #    print(f"Error initializing Grasper for real robot: {e}")
 
-
+    modes = ["right"]
 
     # Initialize PyBullet
     physicsClient = p.connect(p.GUI)
@@ -164,8 +167,11 @@ def main():
         joint_info = p.getJointInfo(robot_id, joint_idx)
         link_name = joint_info[12].decode("utf-8")
         if link_name == 'endeffectol':
-            end_effector_index = joint_idx
-            break
+            end_effector_index_l = joint_idx
+        elif link_name == 'endeffector':
+            end_effector_index_r = joint_idx
+    
+    end_effector_index = end_effector_index_r        
     if end_effector_index == -1:
         print("Error: Could not find end effector link in URDF")
         return
@@ -179,16 +185,17 @@ def main():
 
     # Box control variables
     box_size = 0.03
+    box_initial_pos = args.goal_pos
     box_id = p.createMultiBody(
         baseMass=0, # Set mass to 0 if it's only visual
         baseCollisionShapeIndex=-1, # No collision shape
         baseVisualShapeIndex=p.createVisualShape(p.GEOM_BOX, halfExtents=[box_size/2]*3, rgbaColor=[1, 0.0, 0.0, 0.8]), # Visual shape only
-        basePosition=[0.35, 0, 0.25]
+        basePosition=box_initial_pos
     )
 
     # Second box control variables
     box2_size = 0.03
-    box2_initial_pos = [0.0, 0.3, 0.5]
+    box2_initial_pos = args.init_pos
     box2_id = p.createMultiBody(
         baseMass=0, # Visual only
         baseCollisionShapeIndex=-1, # No collision
@@ -196,16 +203,7 @@ def main():
         basePosition=box2_initial_pos
     )
 
-
-    # Create sliders for box position control
-    x_slider = p.addUserDebugParameter("Goal X", 0.25, 0.5, 0.3)
-    y_slider = p.addUserDebugParameter("Goal Y", -0.25, 0.25, -0.2)
-    z_slider = p.addUserDebugParameter("Goal Z", 0.07, 0.7, 0.07)
-    roll_slider = p.addUserDebugParameter("Goal_Roll", -np.pi, np.pi, 0)
-    pitch_slider = p.addUserDebugParameter("Goal_Pitch", -np.pi, np.pi, 0)
-    yaw_slider = p.addUserDebugParameter("Goal_Yaw", -np.pi, np.pi, 0) # Default to downward
-
-    # Create sliders for second box position control
+    # Create sliders for  box position control
     x2_slider = p.addUserDebugParameter("Init X", -0.2, 0.2, box2_initial_pos[0])
     y2_slider = p.addUserDebugParameter("Init Y", -0.6, 0.6, box2_initial_pos[1])
     z2_slider = p.addUserDebugParameter("Init Z", 0.2, 0.7, box2_initial_pos[2])
@@ -213,7 +211,18 @@ def main():
     # Create additional init sliders for Yaw, Pitch, Roll
     init_roll_slider = p.addUserDebugParameter("Init Roll", -np.pi, np.pi, 0)
     init_pitch_slider = p.addUserDebugParameter("Init Pitch", -np.pi, np.pi, -np.pi/2)
-    init_yaw_slider = p.addUserDebugParameter("Init Yaw", -np.pi, np.pi, 0)
+    init_yaw_slider = p.addUserDebugParameter("Init Yaw", -np.pi, np.pi, 0) 
+    
+    
+    # Create sliders for goal box position control
+    x_slider = p.addUserDebugParameter("Goal X", 0.25, 0.5, box_initial_pos[0])
+    y_slider = p.addUserDebugParameter("Goal Y", -0.25, 0.25, box_initial_pos[1])
+    z_slider = p.addUserDebugParameter("Goal Z", 0.07, 0.7, box_initial_pos[2])
+    roll_slider = p.addUserDebugParameter("Goal_Roll", -np.pi, np.pi, 0)
+    pitch_slider = p.addUserDebugParameter("Goal_Pitch", -np.pi, np.pi, 0)
+    yaw_slider = p.addUserDebugParameter("Goal_Yaw", -np.pi, np.pi, 0) # Default to downward
+
+
 
 
     # Main simulation loop
@@ -256,7 +265,19 @@ def main():
             
             if ord('m') in keys and keys[ord('m')] & p.KEY_WAS_TRIGGERED:
                 grasper.move_arm([0.35,-0.4,0.2], args.ori, args.side)
+            
+            if ord('b') in keys and keys[ord('b')] & p.KEY_WAS_TRIGGERED:
+                end_effector_index = end_effector_index_r
+                print("Switched to right end effector") 
+                mode = "right"             
+            
+            if ord('n') in keys and keys[ord('n')] & p.KEY_WAS_TRIGGERED:
+                end_effector_index = end_effector_index_l
+                print("Switched to left end effector")
+                mode = "left"
+            
 
+            
 
 
             # --- Determine Target Position and Orientation based on flag ---
@@ -330,14 +351,18 @@ def main():
             # --- Calculate and Display Orientation Difference ---
             # Quaternion difference
             quat_diff = p.getDifferenceQuaternion(target_orientation_quat, actual_orientation_quat)
+            
             # Convert quaternion difference to Euler angles (axis-angle representation essentially)
             axis, angle = p.getAxisAngleFromQuaternion(quat_diff)
+            
+            
             
             # Euler angle difference (direct subtraction, might wrap around pi)
             euler_diff = [d - a for d, a in zip(target_orientation_euler, actual_orientation_euler)]
             # Normalize Euler differences to [-pi, pi] for better readability (optional)
             euler_diff_norm = [(diff + np.pi) % (2 * np.pi) - np.pi for diff in euler_diff]
-
+            print (f"Orientation Difference (Euler): {euler_diff_norm}")
+            
 
             # Remove previous orientation debug text
             if orientation_diff_text_id is not None:
