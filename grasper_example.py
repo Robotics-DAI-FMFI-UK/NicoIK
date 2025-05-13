@@ -16,7 +16,7 @@ init_pos = [0, -0.3, 0.5]
 init_ori = [0, -1.57, 0]
 grasp_ori = [0,0,0] # Top grap [0,0,0] or side grasp [1.57,0,0]
 hand = "right"
-object_z = 0.09
+object_z = 0.07
     
 print("\n--- Executing Sequence with IK Move ---")
 # Initial position

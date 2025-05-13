@@ -15,7 +15,7 @@ except Exception as e:
 init_pos_l = [0, 0.3, 0.5]
 init_pos_r = [init_pos_l[0], -init_pos_l[1], init_pos_l[2]]
 init_ori = [0, -1.57, 0]
-grasp_ori = [0,0,0] # Top grap [0,0,0] or side grasp [1.57,0,0]
+grasp_ori = [1.57,0,0] # Top grap [0,0,0] or side grasp [1.57,0,0]
 hand = "left"
 object_z = 0.13
     
@@ -29,8 +29,8 @@ for i in range(30, 50, 5):
     grasper.pick_object([i/100,init_pos_l[1]-0.15,object_z+0.001*i], grasp_ori, "left")
     grasper.pick_object([i/100,init_pos_r[1]+0.15,object_z+0.001*i], grasp_ori, "right")
     # Place object
-    grasper.pick_object([i/100,init_pos_l[1],object_z+0.001*i], grasp_ori, "left")
-    grasper.pick_object([i/100,init_pos_r[1],object_z+0.001*i], grasp_ori, "right")
+    grasper.place_object([i/100,init_pos_l[1],object_z+0.001*i], grasp_ori, "left")
+    grasper.place_object([i/100,init_pos_r[1],object_z+0.001*i], grasp_ori, "right")
 
 
 # Initial position

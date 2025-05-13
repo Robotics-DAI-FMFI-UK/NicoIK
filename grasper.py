@@ -13,7 +13,7 @@ except ImportError:
 
 class Grasper:
     # Constants
-    SPEED = 0.05
+    SPEED = 0.04
     SPEEDF = 0.03
     DELAY = 1
     REPEAT = 1
@@ -68,6 +68,10 @@ class Grasper:
         self.robot = None # For nicomotion hardware interface
         self.is_pybullet_connected = False
         self.is_robot_connected = False
+        self.closed = 20
+        self.open = -170
+        self.speed = self.SPEED
+        self.delay = self.DELAY
 
         try:
             # Connect to PyBullet (GUI or DIRECT)
@@ -516,18 +520,51 @@ class Grasper:
             for joint_name, angle_deg in filtered_solution.items():
                 if angle_deg is not None:  # Ensure the angle is valid
                     # Execute the movement command
-                    self.robot.setAngle(joint_name, float(angle_deg), self.SPEED)
+                    self.robot.setAngle(joint_name, float(angle_deg), self.speed)
                     success_count += 1
                     print(f"  Set {joint_name} to {angle_deg:.2f} degrees.")
                 else:
                     print(f"  Skipping {joint_name} due to invalid angle.")
-            time.sleep(self.DELAY)  # Delay after the move completes
+            time.sleep(self.delay)  # Delay after the move completes
             if success_count == total_joints:
                 print(f"{side.capitalize()} arm successfully moved to all target angles.")
             else:
                 print(f"Moved {success_count}/{total_joints} joints successfully.")
         except Exception as e:
             print(f"Error moving {side} arm: {e}")
+    
+    def move_gripper(self, side, value):
+        """
+        Closes the gripper (left or right) by setting all actuated joint angles to 0.
+
+        Args:
+            side (str): Specify 'left' or 'right' to close the respective gripper.
+        """
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot close gripper.")
+            return
+
+        if side.lower() == 'right':
+            gripper_actuated = self.right_gripper_actuated
+        elif side.lower() == 'left':
+            gripper_actuated = self.left_gripper_actuated
+        else:
+            print("Invalid side specified. Use 'left' or 'right'.")
+            return
+
+        print(f"Moving {side} gripper...")
+        try:
+            for joint_name in gripper_actuated:
+                if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
+                    self.robot.setAngle(joint_name, 180, self.speed)
+                    print(f"  Set {joint_name} to opposite position.")    
+                else:
+                    self.robot.setAngle(joint_name, value, self.speed)
+                    print(f"  Set {joint_name} to {value}.")
+            time.sleep(self.delay) # Delay after the move completes
+            print(f"{side.capitalize()} gripper moved.")
+        except Exception as e:
+            print(f"Error moving {side} gripper: {e}")
     
     def close_gripper(self, side):
         """
@@ -552,15 +589,31 @@ class Grasper:
         try:
             for joint_name in gripper_actuated:
                 if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
-                    self.robot.setAngle(joint_name, 180, self.SPEED)
-                    print(f"  Set {joint_name} to 180 degrees.")    
+                    self.robot.setAngle(joint_name, 180, self.speed)
+                    print(f"  Set {joint_name} to opposite position.")    
                 else:
-                    self.robot.setAngle(joint_name, 20, self.SPEED)
-                    print(f"  Set {joint_name} to 20 degrees.")
-            time.sleep(self.DELAY) # Delay after the move completes
+                    self.robot.setAngle(joint_name, self.closed, self.speed)
+                    print(f"  Set {joint_name} to close.")
+            time.sleep(self.delay) # Delay after the move completes
             print(f"{side.capitalize()} gripper closed.")
         except Exception as e:
             print(f"Error closing {side} gripper: {e}")
+    
+    def close_finger(self, name):
+
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot close gripper.")
+            return
+
+        print(f"Closing {name} finger...")
+        try:
+            self.robot.setAngle(name, self.closed , self.speed)
+            print(f"  Set {joint_name} to close.")
+            time.sleep(self.delay) # Delay after the move completes
+            print(f"{name.capitalize()} finger closed.")
+        except Exception as e:
+            print(f"Error closing {name} name: {e}")
+
 
     def open_gripper(self, side):
         """
@@ -584,12 +637,29 @@ class Grasper:
         print(f"Opening {side} gripper...")
         try:
             for joint_name in gripper_actuated:
-                self.robot.setAngle(joint_name, -170, self.SPEED)
-                print(f"  Set {joint_name} to -170 degrees.")
-            time.sleep(self.DELAY) # Delay after the move completes
-            print(f"{side.capitalize()} gripper opened.")
+                if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
+                    self.robot.setAngle(joint_name, 180, self.speed)
+                    print(f"  Set {joint_name} to opposite postion.")    
+                else:
+                    self.robot.setAngle(joint_name, self.open, self.speed)
+                    print(f"  Set {joint_name} to open.")
         except Exception as e:
             print(f"Error opening {side} gripper: {e}")
+    
+    def open_finger(self, name):
+
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot close gripper.")
+            return
+
+        print(f"Opening {name} finger...")
+        try:
+            self.robot.setAngle(name, self.open , self.speed)
+            print(f"  Set {joint_name} to close.")
+            time.sleep(self.delay) # Delay after the move completes
+            print(f"{side.capitalize()} gripper opened.")
+        except Exception as e:
+            print(f"Error opening {name} finger: {e}")
 
     def pick_object(self, pos, ori, side):
         self.move_arm([pos[0],pos[1],pos[2]+0.15], ori, side)
