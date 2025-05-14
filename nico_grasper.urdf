@@ -467,7 +467,7 @@
 		<child link="left_shoulder"/>
 		<origin rpy="0 0 0" xyz="0.000 0.040 0.23"/>
 		<axis xyz="0 0 -1"/>
-		<limit effort="30" lower="-1.3963" upper="0.4363" velocity="1"/>
+		<limit effort="30" lower="-0.4363" upper="1.3963" velocity="1"/>
 	</joint>
 	<link name="left_collarbone">
 		<visual>

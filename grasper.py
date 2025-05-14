@@ -13,9 +13,9 @@ except ImportError:
 
 class Grasper:
     # Constants
-    SPEED = 0.04
+    SPEED = 0.03
     SPEEDF = 0.03
-    DELAY = 1
+    DELAY = 2
     REPEAT = 1
 
     # Predefined poses (consider making these configurable or loading from file)

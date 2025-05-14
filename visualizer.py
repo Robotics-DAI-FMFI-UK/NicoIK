@@ -6,7 +6,7 @@ import numpy as np
 
 def main():
     parser = argparse.ArgumentParser(description='URDF Visualizer with Joint Sliders')
-    parser.add_argument('--urdf', type=str, default='nico_grasp.urdf',
+    parser.add_argument('--urdf', type=str, default='nico_grasper.urdf',
                        help='Path to URDF file (default: nico_grasp.urdf)')
     args = parser.parse_args()
 
