@@ -65,6 +65,7 @@ class Grasper:
         self.end_effector_index_r = -1
         self.end_effector_index_l = -1
         self.end_effector_index = -1
+        self.ori = [0,0,0]
         self.robot = None # For nicomotion hardware interface
         self.is_pybullet_connected = False
         self.is_robot_connected = False
@@ -200,7 +201,7 @@ class Grasper:
             return None
         
         self.end_effector_index = self.end_effector_index_r if side == 'right' else self.end_effector_index_l
-        
+        self.ori = ori_euler if side == 'right' else [-abs(x) for x in ori_euler]
         if self.end_effector_index < 0:
             print("End effector index not found. Cannot calculate IK.")
             return None
@@ -215,7 +216,7 @@ class Grasper:
             ik_solution = p.calculateInverseKinematics(self.robot_id,
                                                      self.end_effector_index,
                                                      pos,
-                                                     targetOrientation=p.getQuaternionFromEuler(ori_euler),
+                                                     targetOrientation=p.getQuaternionFromEuler(self.ori),
                                                      lowerLimits=self.joints_limits_l,
                                                      upperLimits=self.joints_limits_u,
                                                      jointRanges=self.joints_ranges,
@@ -666,6 +667,12 @@ class Grasper:
         self.move_arm(pos, ori, side)
         self.close_gripper(side)
         self.move_arm([pos[0],pos[1],pos[2]+0.15], ori, side) # Close right gripper
+
+    def approach_object(self, pos, ori, side):
+        self.move_arm([pos[0],pos[1],pos[2]+0.05], ori, side)
+        self.move_arm(pos, ori, side)
+        self.close_gripper(side)
+        self.move_arm([pos[0],pos[1],pos[2]+0.05], ori, side) # Close right gripper
 
     def place_object(self, pos, ori, side):
         self.move_arm([pos[0],pos[1],pos[2]+0.15], ori, side)
