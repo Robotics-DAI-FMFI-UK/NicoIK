@@ -86,9 +86,9 @@ def main():
     )
     
     # Create sliders for box position control
-    x_slider = p.addUserDebugParameter("Box X", 0.25, 0.5, 0.35)
-    y_slider = p.addUserDebugParameter("Box Y", -0.25, 0.25, 0)
-    z_slider = p.addUserDebugParameter("Box Z", 0.07, 0.4, 0.07)
+    x_slider = p.addUserDebugParameter("Box X", 0.05, 0.6, 0.35)
+    y_slider = p.addUserDebugParameter("Box Y", -0.45, 0.45, 0)
+    z_slider = p.addUserDebugParameter("Box Z", 0.07, 0.6, 0.07)
 
     # Main simulation loop
     p.setRealTimeSimulation(1)
