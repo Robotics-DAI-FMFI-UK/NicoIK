@@ -204,9 +204,9 @@ def main():
     )
 
     # Create sliders for  box position control
-    x2_slider = p.addUserDebugParameter("Init X", -0.2, 0.2, box2_initial_pos[0])
-    y2_slider = p.addUserDebugParameter("Init Y", -0.6, 0.6, box2_initial_pos[1])
-    z2_slider = p.addUserDebugParameter("Init Z", 0.2, 0.7, box2_initial_pos[2])
+    x2_slider = p.addUserDebugParameter("Init X", -0.2, 0.5, box2_initial_pos[0])
+    y2_slider = p.addUserDebugParameter("Init Y", -0.5, 0.5, box2_initial_pos[1])
+    z2_slider = p.addUserDebugParameter("Init Z", 0.0, 0.7, box2_initial_pos[2])
 
     # Create additional init sliders for Yaw, Pitch, Roll
     init_roll_slider = p.addUserDebugParameter("Init Roll", -np.pi, np.pi, 0)
@@ -215,9 +215,9 @@ def main():
     
     
     # Create sliders for goal box position control
-    x_slider = p.addUserDebugParameter("Goal X", 0.25, 0.5, box_initial_pos[0])
-    y_slider = p.addUserDebugParameter("Goal Y", -0.25, 0.25, box_initial_pos[1])
-    z_slider = p.addUserDebugParameter("Goal Z", 0.07, 0.7, box_initial_pos[2])
+    x_slider = p.addUserDebugParameter("Goal X", 0.0, 0.6, box_initial_pos[0])
+    y_slider = p.addUserDebugParameter("Goal Y", -0.5, 0.5, box_initial_pos[1])
+    z_slider = p.addUserDebugParameter("Goal Z", 0.0, 0.7, box_initial_pos[2])
     roll_slider = p.addUserDebugParameter("Goal_Roll", -np.pi, np.pi, 0)
     pitch_slider = p.addUserDebugParameter("Goal_Pitch", -np.pi, np.pi, 0)
     yaw_slider = p.addUserDebugParameter("Goal_Yaw", -np.pi, np.pi, 0) # Default to downward
@@ -361,7 +361,7 @@ def main():
             euler_diff = [d - a for d, a in zip(target_orientation_euler, actual_orientation_euler)]
             # Normalize Euler differences to [-pi, pi] for better readability (optional)
             euler_diff_norm = [(diff + np.pi) % (2 * np.pi) - np.pi for diff in euler_diff]
-            print (f"Orientation Difference (Euler): {euler_diff_norm}")
+            #print (f"Orientation Difference (Euler): {euler_diff_norm}")
             
 
             # Remove previous orientation debug text
@@ -379,18 +379,18 @@ def main():
             else:
                 color = [0, 0, 1]
             
-            orientation_diff_text_id = p.addUserDebugText(
-                orientation_diff_text, 
-                textPosition=[0.05, 0.0, 0.8], # Position the text in the GUI
-                textColorRGB=color, 
-                textSize=1.0
-            )
-            orientation_diff_text_id = p.addUserDebugText(
-                str(rad2nicodeg(joint_names, ik_solution)), 
-                textPosition=[0.05, -2.0, 0.5], # Position the text in the GUI
-                textColorRGB=color, 
-                textSize=1.0
-            )
+            #orientation_diff_text_id = p.addUserDebugText(
+            #    orientation_diff_text, 
+            #    textPosition=[0.05, 0.0, 0.8], # Position the text in the GUI
+            #    textColorRGB=color, 
+            #    textSize=1.0
+            #)
+            #orientation_diff_text_id = p.addUserDebugText(
+            #    str(rad2nicodeg(joint_names, ik_solution)), 
+            #    textPosition=[0.05, -2.0, 0.5], # Position the text in the GUI
+            #    textColorRGB=color, 
+            #    textSize=1.0
+            #)
 
             # --- Calculate and Display Position Difference ---
             # Calculate Euclidean distance using the active target position
@@ -410,12 +410,12 @@ def main():
                 color2 = [0, 0, 1]
 
             # Add new position debug text
-            position_diff_text_id = p.addUserDebugText(
-                position_diff_text,
-                textPosition=[0.05, 0, 0.7], # Position above orientation text
-                textColorRGB=color2, 
-                textSize=1.0
-            )
+            #position_diff_text_id = p.addUserDebugText(
+            #    position_diff_text,
+            #    textPosition=[0.05, 0, 0.7], # Position above orientation text
+            #    textColorRGB=color2, 
+            #    textSize=1.0
+            #)
 
             time.sleep(0.01)
     except KeyboardInterrupt:
