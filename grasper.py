@@ -15,7 +15,7 @@ class Grasper:
     # Constants
     SPEED = 0.03
     SPEEDF = 0.03
-    DELAY = 2
+    DELAY = 3
     REPEAT = 1
 
     # Predefined poses (consider making these configurable or loading from file)
@@ -275,12 +275,14 @@ class Grasper:
         for nicojoint, rad in zip(nicojoints, rads):
             # Ensure rad is a number before applying rad2deg
             if isinstance(rad, (int, float)):
-                if nicojoint == 'r_wrist_z':
-                    nicodegree = rad2deg(rad) * 2
-                elif nicojoint == 'r_wrist_x':
-                    nicodegree = rad2deg(rad) * 4
-                else:
-                    nicodegree = rad2deg(rad)
+                degree = rad2deg(rad)
+                scale_factors = {
+                'r_wrist_z': 2,
+                'l_wrist_z': 2,
+                'r_wrist_x': 4,
+                'l_wrist_x': 4
+                }   
+                nicodegree = degree * scale_factors.get(nicojoint, 1)
                 nicodegrees_dict[nicojoint] = nicodegree
             else:
                  # Handle cases where IK might return non-numeric values or None
@@ -642,8 +644,9 @@ class Grasper:
                     self.robot.setAngle(joint_name, 180, self.speed)
                     print(f"  Set {joint_name} to opposite postion.")    
                 else:
-                    self.robot.setAngle(joint_name, self.open, self.speed)
+                    self.robot.setAngle(joint_name, self.open, self.speed-0.01)
                     print(f"  Set {joint_name} to open.")
+            time.sleep(self.delay) # Delay after the move completes
         except Exception as e:
             print(f"Error opening {side} gripper: {e}")
     
@@ -663,10 +666,10 @@ class Grasper:
             print(f"Error opening {name} finger: {e}")
 
     def pick_object(self, pos, ori, side):
-        self.move_arm([pos[0],pos[1],pos[2]+0.15], ori, side)
+        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side)
         self.move_arm(pos, ori, side)
         self.close_gripper(side)
-        self.move_arm([pos[0],pos[1],pos[2]+0.15], ori, side) # Close right gripper
+        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side) # Close right gripper
 
     def approach_object(self, pos, ori, side):
         self.move_arm([pos[0],pos[1],pos[2]+0.05], ori, side)

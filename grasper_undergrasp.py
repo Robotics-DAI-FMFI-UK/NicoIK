@@ -23,18 +23,18 @@ goal2 = [0.4, 0.0]
 print("\n--- Executing Sequence with IK Move ---")
 # Initial position
 grasper.init_position(init_pos_l, init_ori, "left")
-grasper.init_position(init_pos_r, init_ori, "right")
+#grasper.init_position(init_pos_r, init_ori, "right")
 for i in range(1,5):
 
     # Left
-    object_z1 = calculate_z(goal1[0],goal1[1]) + 0.02
-    grasper.pick_object([goal1[0],goal1[1],object_z1], grasp_ori, "left")
-    object_z2 = calculate_z(goal2[0],goal2[1]) + 0.02
-    grasper.place_object([goal2[0],goal2[1],object_z2], grasp_ori, "left")
+    #object_z1 = calculate_z(goal1[0],goal1[1]) + 0.02
+    #grasper.pick_object([goal1[0],goal1[1],object_z1], grasp_ori, "left")
+    #object_z2 = calculate_z(goal2[0],goal2[1]) + 0.02
+    #grasper.place_object([goal2[0],goal2[1],object_z2], grasp_ori, "left")
     grasper.init_position(init_pos_l, init_ori, "left")
     # Right
-    object_z1 = calculate_z(goal1[0],goal1[1]) + 0.03
-    grasper.pick_object([goal2[0],goal2[1],object_z2], grasp_ori, "right")
+    #object_z1 = calculate_z(goal1[0],goal1[1]) + 0.03
+    grasper.move_arm([goal2[0],goal2[1],object_z2], grasp_ori, "right")
     object_z2 = calculate_z(goal2[0],goal2[1]) + 0.03
     grasper.place_object([goal1[0],goal1[1],object_z1], grasp_ori, "right")
     grasper.init_position(init_pos_r, init_ori, "right")
