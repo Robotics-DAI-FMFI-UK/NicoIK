@@ -2,6 +2,8 @@ import pybullet as p
 import time
 from numpy import random, rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean
 import sys  # Add this import at the top of the file
+from sim_height_calculation import calculate_z
+
 # Attempt to import Motion, but handle failure gracefully if not simulating
 try:
     from nicomotion.Motion import Motion
@@ -476,7 +478,23 @@ class Grasper:
 
     ## IK related methods ##
 
-    def move_arm(self, pos, ori, side):
+    
+    def compute_ori_from_pos(self, pos):
+        """
+        Computes the third value of ori (yaw) as a linear function of pos[1]:
+        pos[1] = -0.3 --> ori_yaw = 0
+        pos[1] =  0.3 --> ori_yaw = 1.5
+        """
+        y = pos[1]
+        # Clamp y to [-0.3, 0.3] to avoid extrapolation
+        y = max(-0.3, min(0.3, y))
+        # Linear mapping: ori_yaw = m * y + b
+        m = (1.5 - 0) / (0.3 - (-0.3))  # (delta_ori) / (delta_y)
+        b = 0 - m * (-0.3)
+        ori_yaw = m * y + b
+        return ori_yaw
+    
+    def move_arm(self, pos, ori, side, autozpos=False, autoori=False):
         """
         Moves the robot arm(s) to the specified target angles (degrees) based on the side.
         If side is 'both', calculates IK for left with negated y.
@@ -485,66 +503,71 @@ class Grasper:
             pos (list): Target position [x, y, z].
             ori (list): Target orientation [roll, pitch, yaw].
             side (str): Specify 'left', 'right', or 'both' to move the respective arm(s).
+            autozpos (bool): If True, automatically set pos[2] using calculate_z.
+            autoori (bool): If True, automatically set ori[2] using compute_ori_from_pos.
         """
         sides = []
         positions = {}
 
-        if side.lower() == 'both':
-            sides = ['left', 'right']
-            # For left, use pos with negated y
-            positions['left'] = [pos[0], -pos[1], pos[2]]
-            positions['right'] = pos
-        elif side.lower() in ['left', 'right']:
-            sides = [side.lower()]
-            positions[side.lower()] = pos
-        else:
-            print("Invalid side specified. Use 'left', 'right', or 'both'.")
+        # Copy to avoid modifying input lists
+        pos = list(pos)
+        ori = list(ori)
+
+        if autozpos:
+            pos[2] = calculate_z(pos[0], pos[1]) + 0.04
+
+        if autoori:
+            ori[2] = self.compute_ori_from_pos(pos)
+
+        ik_solution_nico_deg = self.rad2nicodeg(self.joint_names, self.calculate_ik(side, pos, ori))
+
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot move arm.")
             return
 
-        for s in sides:
-            ik_solution_nico_deg = self.rad2nicodeg(
-                self.joint_names,
-                self.calculate_ik(s, positions[s], ori)
-            )
+        if not ik_solution_nico_deg:
+            print("No valid IK solution provided. Cannot move arm.")
+            return
 
-            if not self.is_robot_connected:
-                print(f"Robot hardware not connected. Cannot move {s} arm.")
-                continue
+        # Determine which arm to filter
+        if side.lower() == 'right':
+            arm_actuated = self.right_arm_actuated
+        elif side.lower() == 'left':
+            arm_actuated = self.left_arm_actuated
+        else:
+            print("Invalid side specified. Use 'left' or 'right'.")
+            return
 
-            if not ik_solution_nico_deg:
-                print(f"No valid IK solution provided for {s} arm. Cannot move arm.")
-                continue
+        # Filter the IK solution
+        filtered_solution = {
+            joint: angle for joint, angle in ik_solution_nico_deg.items()
+            if joint in arm_actuated
+        }
 
-            arm_actuated = self.right_arm_actuated if s == 'right' else self.left_arm_actuated
+        if not filtered_solution:
+            print(f"No valid joints found for the {side} arm in the IK solution.")
+            return
 
-            filtered_solution = {
-                joint: angle for joint, angle in ik_solution_nico_deg.items()
-                if joint in arm_actuated
-            }
+        print(f"Moving {side} arm to filtered IK solution angles...")
+        success_count = 0
+        total_joints = len(filtered_solution)
 
-            if not filtered_solution:
-                print(f"No valid joints found for the {s} arm in the IK solution.")
-                continue
-
-            print(f"Moving {s} arm to filtered IK solution angles...")
-            success_count = 0
-            total_joints = len(filtered_solution)
-
-            try:
-                for joint_name, angle_deg in filtered_solution.items():
-                    if angle_deg is not None:
-                        self.robot.setAngle(joint_name, float(angle_deg), self.speed)
-                        success_count += 1
-                        print(f"  Set {joint_name} to {angle_deg:.2f} degrees.")
-                    else:
-                        print(f"  Skipping {joint_name} due to invalid angle.")
-                time.sleep(self.delay)
-                if success_count == total_joints:
-                    print(f"{s.capitalize()} arm successfully moved to all target angles.")
+        try:
+            for joint_name, angle_deg in filtered_solution.items():
+                if angle_deg is not None:  # Ensure the angle is valid
+                    # Execute the movement command
+                    self.robot.setAngle(joint_name, float(angle_deg), self.speed)
+                    success_count += 1
+                    print(f"  Set {joint_name} to {angle_deg:.2f} degrees.")
                 else:
-                    print(f"Moved {success_count}/{total_joints} joints successfully for {s} arm.")
-            except Exception as e:
-                print(f"Error moving {s} arm: {e}")
+                    print(f"  Skipping {joint_name} due to invalid angle.")
+            time.sleep(self.delay)  # Delay after the move completes
+            if success_count == total_joints:
+                print(f"{side.capitalize()} arm successfully moved to all target angles.")
+            else:
+                print(f"Moved {success_count}/{total_joints} joints successfully.")
+        except Exception as e:
+            print(f"Error moving {side} arm: {e}")
     
     def move_gripper(self, side, value):
         """

@@ -24,7 +24,7 @@ print("\n--- Executing Sequence with IK Move ---")
 # Initial position
 grasper.init_position(init_pos_l, init_ori, "left")
 grasper.init_position(init_pos_r, init_ori, "right")
-for i in range(1,5):
+while True:
 
     # Left
     object_z1 = calculate_z(goal1[0],goal1[1]) + 0.02
