@@ -92,7 +92,7 @@ def main():
     #p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=90, cameraPitch=-40, cameraTargetPosition=[0, 0, 0])
 
     # Load the URDF robot a create scene
-    robot_id = p.loadURDF("./nico_upper_rh6d_r.urdf", [0, 0, 0])
+    robot_id = p.loadURDF("./urdf/nico_upper_rh6d_r.urdf", [0, 0, 0])
     
     num_joints = p.getNumJoints(robot_id)
     joints_limits, joints_ranges, joints_rest_poses, end_effector_index, joint_names, link_names, joint_indices = get_joints_limits(robot_id, num_joints,arg_dict)

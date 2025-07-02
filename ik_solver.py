@@ -271,7 +271,7 @@ def main():
 
     # Load the URDF robot a create scene
     if arg_dict["left"]:
-        robot_id = p.loadURDF("./nico_upper_rh6d_l.urdf", [0, 0, 0])
+        robot_id = p.loadURDF("./urdf/nico_upper_rh6d_l.urdf", [0, 0, 0])
     else:
         #robot_id = p.loadURDF("./tiago_dual_mygym.urdf", [0, 0, 0])
     #Create table mesh
@@ -282,7 +282,7 @@ def main():
     #                      baseCollisionShapeIndex= p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.16,.26,0.01]), baseMass=0,basePosition=[0.41,0,0.035])
     
 
-        robot_id = p.loadURDF("./nico_upper_rh6d_r.urdf", [0, 0, 0])
+        robot_id = p.loadURDF("./urdf/nico_upper_rh6d_r.urdf", [0, 0, 0])
     # Create table mesh
     p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
                                                                rgbaColor=[0.6, 0.6, 0.6, 1]),

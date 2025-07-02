@@ -191,7 +191,7 @@ def wait_sim(steps):
 
 def main():
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Simulation")
-    parser.add_argument("--urdf", type=str, default="./nico_upper_rh6d_r.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--urdf", type=str, default="./urdf/nico_upper_rh6d_r.urdf", help="Path to the robot URDF file.")
     args = parser.parse_args()
 
     print("Starting PyBullet Grasping Simulation...")
@@ -203,7 +203,7 @@ def main():
     p.setTimeStep(SIM_TIME_STEP)
 
     # Load ground plane
-    planeId = p.loadURDF("plane.urdf")
+    planeId = p.loadURDF("./urdf/plane.urdf")
 
     # Load robot
     print(f"Loading URDF: {args.urdf}")

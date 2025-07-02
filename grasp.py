@@ -165,7 +165,7 @@ def get_real_joints(robot, joints):
 
 def main():
     p.connect(p.DIRECT)
-    robot_id = p.loadURDF("./nico_upper_rh6d_r.urdf", [0, 0, 0])
+    robot_id = p.loadURDF("./urdf/nico_upper_rh6d_r.urdf", [0, 0, 0])
     num_joints = p.getNumJoints(robot_id)
     joints_limits, joints_ranges, joints_rest_poses, joint_names, link_names, joint_indices, end_effector_index = get_joints_limits(
         robot_id, num_joints)

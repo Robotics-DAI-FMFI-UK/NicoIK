@@ -255,8 +255,8 @@ def main():
     parser.add_argument("-gr", "--grasp", action="store_true", help="If set, test grasp")
     parser.add_argument("-rp", "--robot_pos", nargs=3, default = [0,0,0], type=float, help="Target orientation for the robot end effector as a list of four floats.")
     parser.add_argument("-ro", "--robot_ori", nargs=3, default = [0,0,0], type=float, help="Target orientation for the robot end effector as a list of four floats.")
-    parser.add_argument("-r", "--robot", type=str, default="tiago_dual_mygym.urdf", help="Duration of movement in si/real robot")
-    parser.add_argument("-en", "--environment", type=str, default="table_tiago.urdf", help="Duration of movement in si/real robot")
+    parser.add_argument("-r", "--robot", type=str, default="./urdf/tiago_dual_mygym.urdf", help="Duration of movement in si/real robot")
+    parser.add_argument("-en", "--environment", type=str, default="./urdf/table_tiago.urdf", help="Duration of movement in si/real robot")
     parser.add_argument("-l", "--left", action="store_true", help="If set, use left hand IK")
     parser.add_argument("-i", "--initial", action="store_true", help="If set, reset the robot to the initial position after each postion")
     parser.add_argument("-ip", "--iposition", nargs=3, default = [-0.2, -0.5, 1.2], type=float, help="Initial position for the robot end effector as a list of three floats.")
@@ -286,7 +286,7 @@ def main():
         p.connect(p.DIRECT)
 
     # Load the URDF robot a create scene
-    floor = p.loadURDF("./plane.urdf")
+    floor = p.loadURDF("./urdf/plane.urdf")
     floortex = p.loadTexture("./textures/parquet1.jpg")
     p.changeVisualShape(floor, -1, textureUniqueId=floortex)
 

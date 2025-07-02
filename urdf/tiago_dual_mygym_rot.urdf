@@ -54,14 +54,14 @@
   <link name="base_footprint2">
       <origin rpy="0 0 0" xyz="0 0 0"/>
   </link>
-  <joint name="baseslide_rjoint" type="prismatic">
+  <joint name="baseslide_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="world"/>
     <child link="base_footprint"/>
     <axis xyz="0 1 0"/>
     <limit effort="500" lower="-0.7" upper="0.35" velocity="1"/>
   </joint>
-  <joint name="baseslide2_rjoint" type="prismatic">
+  <joint name="baseslide2_rjoint" type="fixed">
     <origin rpy="0 0 0" xyz="0. 0 0"/>
     <parent link="base_footprint"/>
     <child link="base_footprint2"/>
@@ -802,7 +802,7 @@
   <joint name="endeffector_gjoint" type="fixed">
     <parent link="gripper"/>
     <child link="endeffector"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.20"/>
+    <origin rpy="0 0 -1.57079632679" xyz="0.0 0.0 -0.20"/>
   </joint>
   <link name="endeffector">
     <visual>

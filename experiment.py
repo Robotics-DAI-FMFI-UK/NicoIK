@@ -213,7 +213,7 @@ def main():
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
     p.resetDebugVisualizerCamera(cameraDistance=1, cameraYaw=90, cameraPitch=-40, cameraTargetPosition=[0, 0, 0])
 
-    robot_id = p.loadURDF("./nico.urdf", [0, 0, 0])
+    robot_id = p.loadURDF("./urdf/nico.urdf", [0, 0, 0])
     # Create table mesh
     p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
                                                                rgbaColor=[0.6, 0.6, 0.6, 1]),
