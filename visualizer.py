@@ -69,13 +69,23 @@ def main():
             # Convert joint limits from radians to degrees for display
             lower_deg = lower * 57.2958
             upper_deg = upper * 57.2958
-            slider = p.addUserDebugParameter(
-                paramName=joint_name + " (deg)",
-                rangeMin=lower_deg,
-                rangeMax=upper_deg,
-                startValue=(lower_deg + upper_deg)/2
-            )
-            sliders.append((joint_idx, slider))
+            if joint_type == p.JOINT_REVOLUTE:
+                slider = p.addUserDebugParameter(
+                    paramName=joint_name + " (deg)",
+                    rangeMin=lower_deg,
+                    rangeMax=upper_deg,
+                    startValue=(lower_deg + upper_deg)/2
+                )
+                sliders.append((joint_idx, slider))
+            else:
+                #Prismatic joints
+                slider = p.addUserDebugParameter(
+                    paramName=joint_name + " (m)",
+                    rangeMin=lower,
+                    rangeMax=upper,
+                    startValue=(lower + upper) / 2
+                )
+                sliders.append((joint_idx,slider))
 
     # Box control variables
     box_size = 0.03  # 5x5x5 cm
@@ -114,7 +124,12 @@ def main():
             
             for joint_idx, slider_id in sliders:
                 value_deg = p.readUserDebugParameter(slider_id)
-                value = value_deg * 0.0174533  # Convert degrees back to radians
+                joint_info = p.getJointInfo(robot_id, joint_idx)
+                joint_type = joint_info[2]
+                if joint_type == p.JOINT_REVOLUTE:
+                    value = value_deg * 0.0174533  # Convert degrees back to radians
+                else:
+                    value = value_deg
                 p.setJointMotorControl2(
                     bodyIndex=robot_id,
                     jointIndex=joint_idx,

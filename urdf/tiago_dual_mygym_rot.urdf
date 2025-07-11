@@ -119,9 +119,9 @@
       <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0.275"/>
+      <origin rpy="0 0 0" xyz="0 0 0.45"/>
       <geometry>
-        <box size="0.18 0.2 0.55"/>
+        <box size="0.18 0.2 0.90"/>
       </geometry>
       <material name="DarkGrey"/>
     </visual>
@@ -154,12 +154,12 @@
       <material name="White"/>
     </collision>
   </link>
-  <joint name="torso_lift_joint" type="fixed">
+  <joint name="torso_lift_joint" type="prismatic">
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.95"/>
     <parent link="torso_fixed_link"/>
     <child link="torso_lift_link"/>
     <axis xyz="0 0 1"/>
-    <limit effort="2000" lower="0.349" upper="0.35" velocity="5"/>
+    <limit effort="2000" lower="0" upper="0.35" velocity="5"/>
     <calibration rising="0.0"/>
     <dynamics damping="1000"/>
     <safety_controller k_position="20" k_velocity="20" soft_lower_limit="0.0" soft_upper_limit="0.35"/>
