@@ -699,10 +699,10 @@ class Grasper:
             print(f"Error opening {name} finger: {e}")
 
     def pick_object(self, pos, ori, side):
-        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side)
-        self.move_arm(pos, ori, side)
+        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=True)
+        self.move_arm(pos, ori, side, autoori=True)
         self.close_gripper(side)
-        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side) # Close right gripper
+        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=True) # Close right gripper
 
     def approach_object(self, pos, ori, side):
         self.move_arm([pos[0],pos[1],pos[2]+0.05], ori, side)
