@@ -73,6 +73,7 @@ class Grasper:
         self.is_robot_connected = False
         self.closed = 20
         self.open = -170
+        self.opposite = 170
         self.speed = self.SPEED
         self.delay = self.DELAY
 
@@ -171,6 +172,9 @@ class Grasper:
                 end_effector_index_r = jid
             if link_name_bytes.decode("utf-8") == 'endeffectol': # Make sure your URDF defines this link name
                 end_effector_index_l = jid
+            if link_name_bytes.decode("utf-8") == 'sight': # Make sure your URDF defines this link name
+                end_effector_index_h = jid
+                
 
         self.joints_limits_l = joints_limits_l
         self.joints_limits_u = joints_limits_u
@@ -182,7 +186,7 @@ class Grasper:
         self.joint_name_to_index = joint_name_to_index # Map name -> index
         self.end_effector_index_r = end_effector_index_r
         self.end_effector_index_l = end_effector_index_l
-
+        self.end_effector_index_h = end_effector_index_h
 
     def calculate_ik(self, side, pos, ori_euler):
         """
@@ -592,7 +596,7 @@ class Grasper:
         try:
             for joint_name in gripper_actuated:
                 if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
-                    self.robot.setAngle(joint_name, 180, self.speed)
+                    self.robot.setAngle(joint_name, self.opposite, self.speed)
                     print(f"  Set {joint_name} to opposite position.")    
                 else:
                     self.robot.setAngle(joint_name, value, self.speed)
@@ -625,7 +629,7 @@ class Grasper:
         try:
             for joint_name in gripper_actuated:
                 if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
-                    self.robot.setAngle(joint_name, 180, self.speed)
+                    self.robot.setAngle(joint_name, self.opposite, self.speed)
                     print(f"  Set {joint_name} to opposite position.")    
                 else:
                     self.robot.setAngle(joint_name, self.closed, self.speed)
@@ -674,7 +678,7 @@ class Grasper:
         try:
             for joint_name in gripper_actuated:
                 if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
-                    self.robot.setAngle(joint_name, 180, self.speed)
+                    self.robot.setAngle(joint_name, self.opposite, self.speed)
                     print(f"  Set {joint_name} to opposite postion.")    
                 else:
                     self.robot.setAngle(joint_name, self.open, self.speed-0.01)
@@ -683,6 +687,41 @@ class Grasper:
         except Exception as e:
             print(f"Error opening {side} gripper: {e}")
     
+    def point_gripper(self, side):
+        """
+        Closes the gripper (left or right) by setting all actuated joint angles to 0.
+
+        Args:
+            side (str): Specify 'left' or 'right' to close the respective gripper.
+        """
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot close gripper.")
+            return
+
+        if side.lower() == 'right':
+            gripper_actuated = self.right_gripper_actuated
+        elif side.lower() == 'left':
+            gripper_actuated = self.left_gripper_actuated
+        else:
+            print("Invalid side specified. Use 'left' or 'right'.")
+            return
+
+        print(f"Opening {side} gripper...")
+        try:
+            for joint_name in gripper_actuated:
+                if joint_name in 'r_thumb_z' or joint_name in 'l_thumb_z':
+                    self.robot.setAngle(joint_name, self.opposite, self.speed)
+                    print(f"  Set {joint_name} to opposite postion.")    
+                if joint_name in 'r_indexfinger_x' or joint_name in 'l_indexfinger_x':
+                    self.robot.setAngle(joint_name, self.open, self.speed)
+                    print(f"  Set {joint_name} to opposite postion.")   
+                else:
+                    self.robot.setAngle(joint_name, self.closed, self.speed-0.01)
+                    print(f"  Set {joint_name} to open.")
+            time.sleep(self.delay) # Delay after the move completes
+        except Exception as e:
+            print(f"Error opening {side} gripper: {e}")
+
     def open_finger(self, name):
 
         if not self.is_robot_connected:
@@ -697,6 +736,33 @@ class Grasper:
             print(f"{side.capitalize()} gripper opened.")
         except Exception as e:
             print(f"Error opening {name} finger: {e}")
+    
+    def look_at(self, pos):
+
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot close gripper.")
+            return
+
+        ik_solution = p.calculateInverseKinematics(self.robot_id,
+                                                     self.end_effector_index_h,
+                                                     pos)
+        ik_solution_nico_deg = self.rad2nicodeg(self.head_actuated,ik_solution)
+        
+        
+        filtered_solution = {
+            joint: angle for joint, angle in ik_solution_nico_deg.items()
+            if joint in self.head_actuated
+
+        
+        for joint_name, angle_deg in filtered_solution.items():
+            if angle_deg is not None:  # Ensure the angle is valid
+                # Execute the movement command
+                self.robot.setAngle(joint_name, float(angle_deg), self.speed)
+                success_count += 1
+                print(f"  Set {joint_name} to {angle_deg:.2f} degrees.")
+            else:
+                print(f"  Skipping {joint_name} due to invalid angle.")
+        time.sleep(self.delay)  # Delay after the move completes
 
     def pick_object(self, pos, ori, side):
         self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=True)
