@@ -4,7 +4,7 @@ from grasper import Grasper
 print("Initializing Grasper...")
 try:
     grasper = Grasper(
-        urdf_path="./nico_grasper.urdf",
+        urdf_path="./urdf/nico_grasper.urdf",
         motor_config="./nico_humanoid_upper_rh7d_ukba.json",
         connect_robot=True,     # Connect to the real robot hardware
     )

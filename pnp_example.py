@@ -6,7 +6,7 @@ from grasper import Grasper
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
-    parser.add_argument("--urdf", type=str, default="./nico_grasper.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--urdf", type=str, default="./urdf/nico_grasper.urdf", help="Path to the robot URDF file.")
     parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
     parser.add_argument("--side", type=str, default="right", help="Which arm and gripper to execute")
     parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")

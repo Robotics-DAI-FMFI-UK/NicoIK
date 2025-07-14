@@ -112,15 +112,18 @@ def get_controllable_arm_joints(robot_id, num_joints):
 
 def main():
     parser = argparse.ArgumentParser(description="Nico Robot Grasping Control")
-    parser.add_argument("--urdf", type=str, default="./nico_grasper.urdf", help="Path to the robot URDF file.")
+    parser.add_argument("--urdf", type=str, default="./urdf/nico_grasper.urdf", help="Path to the robot URDF file.")
     parser.add_argument("--config", type=str, default="./nico_humanoid_upper_rh7d_ukba.json", help="Path to the motor config JSON.")
     parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")
     parser.add_argument("-i", "--init_pos", nargs=3, type=float, default = [0.0, -0.3, 0.5], help="Target position for the robot end effector as a list of three floats.")
     parser.add_argument("-g", "--goal_pos", nargs=3, type=float, default = [0.3, -0.3, 0.07], help="Target position for the robot end effector as a list of three floats.")
+    parser.add_argument("--scene", type=str, help="Path to workspace scene object, such as tiago table", default = "./urdf/table_tiago.urdf")
+    parser.add_argument("--texture", type=str, help="Path to the texture of scene object", default = "./urdf/textures/table.jpg")
     
     args = parser.parse_args()
 
     connect_hw = args.real_robot
+
     #print("Initializing Grasper...")
     #try:
     #    grasper = Grasper(
@@ -142,16 +145,26 @@ def main():
     #orientation = p.getQuaternionFromEuler([-3.14, 0, 0])  # Fixed downward orientation
 
     # Create ground plane (90x60x3 cm)
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
-                                                           rgbaColor=[0.8, 0.7, 0.4, 1]),
-                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025]),
-                      baseMass=0, basePosition=[0.26, 0, 0.029])
+
+    # p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025],
+    #                                                        rgbaColor=[0.8, 0.7, 0.4, 1]),
+    #                   baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX, halfExtents=[.30, .45, 0.025]),
+    #                   baseMass=0, basePosition=[0.26, 0, 0.029])
+
+    scene_uid = p.loadURDF(args.scene, useFixedBase=True)
+    texture_id = p.loadTexture(args.texture)
+    p.changeVisualShape(scene_uid, -1, rgbaColor=[1, 1, 1, 1], textureUniqueId=texture_id)
+
+
+    p.resetBasePositionAndOrientation(scene_uid, [0.225, 0.2, 0], p.getQuaternionFromEuler([0, 0, -np.pi / 2]))
     # Create tablet mesh
-    p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.165, .267, 0.001],
-                                                           rgbaColor=[0, 0, 0.0, .5]),
-                      baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
-                                                                    halfExtents=[.165, .267, 0.001]), baseMass=0,
-                      basePosition=[0.395, 0, 0.054])
+    # p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.165, .267, 0.001],
+    #                                                        rgbaColor=[0, 0, 0.0, .5]),
+    #                   baseCollisionShapeIndex=p.createCollisionShape(shapeType=p.GEOM_BOX,
+    #                                                                 halfExtents=[.165, .267, 0.001]), baseMass=0,
+    #                   basePosition=[0.395, 0, 1.054])
+    time.sleep(1)
+
 
     # Load URDF
     try:
@@ -171,7 +184,7 @@ def main():
         elif link_name == 'endeffector':
             end_effector_index_r = joint_idx
     
-    end_effector_index = end_effector_index_r        
+    end_effector_index = end_effector_index_r
     if end_effector_index == -1:
         print("Error: Could not find end effector link in URDF")
         return
@@ -204,9 +217,9 @@ def main():
     )
 
     # Create sliders for  box position control
-    x2_slider = p.addUserDebugParameter("Init X", -0.2, 0.5, box2_initial_pos[0])
-    y2_slider = p.addUserDebugParameter("Init Y", -0.5, 0.5, box2_initial_pos[1])
-    z2_slider = p.addUserDebugParameter("Init Z", 0.0, 0.7, box2_initial_pos[2])
+    x2_slider = p.addUserDebugParameter("Init X", -0.2, 1.0, box2_initial_pos[0])
+    y2_slider = p.addUserDebugParameter("Init Y", -0.6, 0.6, box2_initial_pos[1])
+    z2_slider = p.addUserDebugParameter("Init Z", 0.3, 1.5, box2_initial_pos[2])
 
     # Create additional init sliders for Yaw, Pitch, Roll
     init_roll_slider = p.addUserDebugParameter("Init Roll", -np.pi, np.pi, 0)

@@ -33,7 +33,7 @@ class Grasper:
         'l_indexfinger_x': -170.0, 'l_middlefingers_x': -180.0
     }
 
-    def __init__(self, urdf_path="./nico_grasper.urdf", motor_config='./nico_humanoid_upper_rh7d_ukba.json', connect_robot=True):
+    def __init__(self, urdf_path="./urdf/nico_grasper.urdf", motor_config='./nico_humanoid_upper_rh7d_ukba.json', connect_robot=True):
         """
         Initializes the Grasper class.
 
