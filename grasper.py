@@ -573,6 +573,135 @@ class Grasper:
         except Exception as e:
             print(f"Error moving {side} arm: {e}")
     
+    def move_both_arms(self, pos, ori):
+        """
+        Moves both arms to the specified target angles (degrees) simultaneously.
+        Calculates IK for left with negated y, and for right as given.
+
+        Args:
+            pos (list): Target position [x, y, z].
+            ori (list): Target orientation [roll, pitch, yaw].
+        """
+        # Prepare positions for both arms
+        pos_left = [pos[0], -pos[1], pos[2]]
+        pos_right = pos
+
+        # Calculate IK and convert to Nico degrees
+        ik_left_deg = self.rad2nicodeg(
+            self.joint_names,
+            self.calculate_ik('left', pos_left, ori)
+        )
+        ik_right_deg = self.rad2nicodeg(
+            self.joint_names,
+            self.calculate_ik('right', pos_right, ori)
+        )
+
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot move arms.")
+            return
+
+        if not ik_left_deg or not ik_right_deg:
+            print("No valid IK solution provided for both arms. Cannot move arms.")
+            return
+
+        # Filter for actuated joints
+        left_filtered = {joint: angle for joint, angle in ik_left_deg.items() if joint in self.left_arm_actuated}
+        right_filtered = {joint: angle for joint, angle in ik_right_deg.items() if joint in self.right_arm_actuated}
+
+        # Ensure both have the same number of joints for simultaneous movement
+        min_len = min(len(left_filtered), len(right_filtered))
+        left_joints = list(left_filtered.items())
+        right_joints = list(right_filtered.items())
+
+        print("Moving both arms to filtered IK solution angles simultaneously...")
+        success_count = 0
+
+        try:
+            for i in range(min_len):
+                l_joint, l_angle = left_joints[i]
+                r_joint, r_angle = right_joints[i]
+                if l_angle is not None:
+                    self.robot.setAngle(l_joint, float(l_angle), self.speed)
+                    print(f"  Set {l_joint} to {l_angle:.2f} degrees.")
+                if r_angle is not None:
+                    self.robot.setAngle(r_joint, float(r_angle), self.speed)
+                    print(f"  Set {r_joint} to {r_angle:.2f} degrees.")
+                success_count += 1
+            time.sleep(self.delay)
+            print(f"Both arms successfully moved to {success_count} joint positions.")
+        except Exception as e:
+            print(f"Error moving both arms: {e}")
+
+    def move_both_arms_head(self, pos, ori):
+        """
+        Moves both arms to the specified target angles (degrees) simultaneously.
+        Calculates IK for left with negated y, and for right as given.
+
+        Args:
+            pos (list): Target position [x, y, z].
+            ori (list): Target orientation [roll, pitch, yaw].
+        """
+        # Prepare positions for both arms
+        pos_left = [pos[0], -pos[1], pos[2]]
+        pos_right = pos
+
+        # Calculate IK and convert to Nico degrees
+        ik_left_deg = self.rad2nicodeg(
+            self.joint_names,
+            self.calculate_ik('left', pos_left, ori)
+        )
+        ik_right_deg = self.rad2nicodeg(
+            self.joint_names,
+            self.calculate_ik('right', pos_right, ori)
+        )
+
+        ik_head_deg = self.looking_ik(pos)
+
+        filtered_solution = {
+            joint: angle for joint, angle in ik_head_deg.items()
+            if joint in self.head_actuated}
+
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot move arms.")
+            return
+
+        if not ik_left_deg or not ik_right_deg:
+            print("No valid IK solution provided for both arms. Cannot move arms.")
+            return
+
+        # Filter for actuated joints
+        left_filtered = {joint: angle for joint, angle in ik_left_deg.items() if joint in self.left_arm_actuated}
+        right_filtered = {joint: angle for joint, angle in ik_right_deg.items() if joint in self.right_arm_actuated}
+        head_filtered = {joint: angle for joint, angle in ik_head_deg.items() if joint in self.head_actuated}
+        # Ensure both have the same number of joints for simultaneous movement
+        min_len = min(len(left_filtered), len(right_filtered))
+        left_joints = list(left_filtered.items())
+        right_joints = list(right_filtered.items())
+        head_joints = list(head_filtered.items())
+
+        print("Moving both arms to filtered IK solution angles simultaneously...")
+        success_count = 0
+
+        try:
+            for i in range(min_len):
+                l_joint, l_angle = left_joints[i]
+                r_joint, r_angle = right_joints[i]
+                if l_angle is not None:
+                    self.robot.setAngle(l_joint, float(l_angle), self.speed)
+                    print(f"  Set {l_joint} to {l_angle:.2f} degrees.")
+                if r_angle is not None:
+                    self.robot.setAngle(r_joint, float(r_angle), self.speed)
+                    print(f"  Set {r_joint} to {r_angle:.2f} degrees.")
+                if i==0:
+                    self.robot.setAngle(head_joints[0][0], float(head_joints[0][1]), self.speed)
+                    self.robot.setAngle(head_joints[1][0], float(head_joints[1][1]), self.speed)
+                    print(f"  Set {head_joints[0][0]} to {head_joints[0][1]:.2f} degrees.")
+                    print(f"  Set {head_joints[1][0]} to {head_joints[1][1]:.2f} degrees.")
+                success_count += 1
+            time.sleep(self.delay)
+            print(f"Both arms successfully moved to {success_count} joint positions.")
+        except Exception as e:
+            print(f"Error moving both arms: {e}")
     def move_gripper(self, side, value):
         """
         Closes the gripper (left or right) by setting all actuated joint angles to 0.
@@ -775,12 +904,8 @@ class Grasper:
         
         # Convert the Euler angles (roll, pitch, yaw) to a quaternion
         return p.getQuaternionFromEuler([roll, pitch, yaw])
-    
-    def look_at(self, pos):
 
-        if not self.is_robot_connected:
-            print("Robot hardware not connected. Cannot close gripper.")
-            return
+    def looking_ik(self, pos):
         head_link_state = p.getLinkState(self.robot_id, self.end_effector_index_h)
         head_pos = head_link_state[0]
                 
@@ -797,10 +922,16 @@ class Grasper:
                                                      restPoses=self.joints_rest_poses,
                                                      maxNumIterations=300,
                                                      residualThreshold=0.0001)
-        #print ("Position:" + str(pos))
-        #print("IK Solution (Radians):", ik_solution)
-        ik_solution_nico_deg = self.rad2nicodeg(self.head_actuated,ik_solution)
-        #print("IK Solution (Nico Degrees):", ik_solution_nico_deg)
+        
+        return self.rad2nicodeg(self.head_actuated,ik_solution)
+    
+    def look_at(self, pos):
+
+        if not self.is_robot_connected:
+            print("Robot hardware not connected. Cannot close gripper.")
+            return
+
+        ik_solution_nico_deg = self.looking_ik(pos)
 
         filtered_solution = {
             joint: angle for joint, angle in ik_solution_nico_deg.items()
@@ -939,61 +1070,4 @@ class Grasper:
         print("Cleanup complete.")
         sys.exit()  # Terminate the program after cleanup
 
-    def move_both_arms(self, pos, ori):
-        """
-        Moves both arms to the specified target angles (degrees) simultaneously.
-        Calculates IK for left with negated y, and for right as given.
-
-        Args:
-            pos (list): Target position [x, y, z].
-            ori (list): Target orientation [roll, pitch, yaw].
-        """
-        # Prepare positions for both arms
-        pos_left = [pos[0], -pos[1], pos[2]]
-        pos_right = pos
-
-        # Calculate IK and convert to Nico degrees
-        ik_left_deg = self.rad2nicodeg(
-            self.joint_names,
-            self.calculate_ik('left', pos_left, ori)
-        )
-        ik_right_deg = self.rad2nicodeg(
-            self.joint_names,
-            self.calculate_ik('right', pos_right, ori)
-        )
-
-        if not self.is_robot_connected:
-            print("Robot hardware not connected. Cannot move arms.")
-            return
-
-        if not ik_left_deg or not ik_right_deg:
-            print("No valid IK solution provided for both arms. Cannot move arms.")
-            return
-
-        # Filter for actuated joints
-        left_filtered = {joint: angle for joint, angle in ik_left_deg.items() if joint in self.left_arm_actuated}
-        right_filtered = {joint: angle for joint, angle in ik_right_deg.items() if joint in self.right_arm_actuated}
-
-        # Ensure both have the same number of joints for simultaneous movement
-        min_len = min(len(left_filtered), len(right_filtered))
-        left_joints = list(left_filtered.items())
-        right_joints = list(right_filtered.items())
-
-        print("Moving both arms to filtered IK solution angles simultaneously...")
-        success_count = 0
-
-        try:
-            for i in range(min_len):
-                l_joint, l_angle = left_joints[i]
-                r_joint, r_angle = right_joints[i]
-                if l_angle is not None:
-                    self.robot.setAngle(l_joint, float(l_angle), self.speed)
-                    print(f"  Set {l_joint} to {l_angle:.2f} degrees.")
-                if r_angle is not None:
-                    self.robot.setAngle(r_joint, float(r_angle), self.speed)
-                    print(f"  Set {r_joint} to {r_angle:.2f} degrees.")
-                success_count += 1
-            time.sleep(self.delay)
-            print(f"Both arms successfully moved to {success_count} joint positions.")
-        except Exception as e:
-            print(f"Error moving both arms: {e}")
+    
