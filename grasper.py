@@ -1,6 +1,6 @@
 import pybullet as p
 import time
-from numpy import random, rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean
+from numpy import random, rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean, arctan2, sqrt
 import sys  # Add this import at the top of the file
 from sim_height_calculation import calculate_z
 
@@ -172,7 +172,7 @@ class Grasper:
                 end_effector_index_r = jid
             if link_name_bytes.decode("utf-8") == 'endeffectol': # Make sure your URDF defines this link name
                 end_effector_index_l = jid
-            if link_name_bytes.decode("utf-8") == 'sight': # Make sure your URDF defines this link name
+            if link_name_bytes.decode("utf-8") == 'head': # Make sure your URDF defines this link name
                 end_effector_index_h = jid
                 
 
@@ -737,25 +737,70 @@ class Grasper:
         except Exception as e:
             print(f"Error opening {name} finger: {e}")
     
+    def get_look_at_quaternion(self, eye_pos, target_pos):
+        """
+        Calculates a quaternion to orient an object at eye_pos to look at target_pos.
+        This is achieved by calculating the required yaw and pitch from the direction vector.
+        
+        Args:
+            eye_pos (list or np.array): The starting position (e.g., head link).
+            target_pos (list or np.array): The position to look at.
+
+        Returns:
+            list: A quaternion [x, y, z, w].
+        """
+        # Ensure inputs are numpy arrays
+        eye_pos = array(eye_pos)
+        target_pos = array(target_pos)
+        
+        # Calculate the direction vector from the eye to the target
+        direction = target_pos - eye_pos
+        
+        # Handle case where the target is at the same position as the eye
+        if linalg.norm(direction) < 1e-6:
+            return [0, 0, 0, 1] # Return identity quaternion (no rotation)
+            
+        # Calculate Yaw (rotation around Z-axis)
+        # This determines the left-right direction
+        yaw = arctan2(direction[1], direction[0])
+        
+        # Calculate Pitch (rotation around Y-axis)
+        # This determines the up-down direction
+        # The horizontal distance is the length of the projection onto the XY plane
+        horizontal_dist = sqrt(direction[0]**2 + direction[1]**2)
+        pitch = arctan2(-direction[2], horizontal_dist)
+        
+        # We assume Roll (rotation around X-axis) is 0 for a simple "look at"
+        roll = 0
+        
+        # Convert the Euler angles (roll, pitch, yaw) to a quaternion
+        return p.getQuaternionFromEuler([roll, pitch, yaw])
+    
     def look_at(self, pos):
 
         if not self.is_robot_connected:
             print("Robot hardware not connected. Cannot close gripper.")
             return
-
+        head_link_state = p.getLinkState(self.robot_id, self.end_effector_index_h)
+        head_pos = head_link_state[0]
+                
+        # Calculate the look-at quaternion
+        target_orientation_quat = self.get_look_at_quaternion(head_pos, pos)
+        
         ik_solution = p.calculateInverseKinematics(self.robot_id,
                                                      self.end_effector_index_h,
                                                      pos,
+                                                     target_orientation_quat,
                                                      lowerLimits=self.joints_limits_l,
                                                      upperLimits=self.joints_limits_u,
                                                      jointRanges=self.joints_ranges,
                                                      restPoses=self.joints_rest_poses,
                                                      maxNumIterations=300,
                                                      residualThreshold=0.0001)
-        print ("Position:" + str(pos))
-        print("IK Solution (Radians):", ik_solution)
+        #print ("Position:" + str(pos))
+        #print("IK Solution (Radians):", ik_solution)
         ik_solution_nico_deg = self.rad2nicodeg(self.head_actuated,ik_solution)
-        print("IK Solution (Nico Degrees):", ik_solution_nico_deg)
+        #print("IK Solution (Nico Degrees):", ik_solution_nico_deg)
 
         filtered_solution = {
             joint: angle for joint, angle in ik_solution_nico_deg.items()
@@ -770,7 +815,7 @@ class Grasper:
                 print(f"  Set {joint_name} to {angle_deg:.2f} degrees.")
             else:
                 print(f"  Skipping {joint_name} due to invalid angle.")
-        time.sleep(self.delay)  # Delay after the move completes
+        time.sleep(self.delay/2)  # Delay after the move completes
 
     def pick_object(self, pos, ori, side):
         self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=True)

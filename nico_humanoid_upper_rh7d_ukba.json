@@ -68,7 +68,7 @@
       "offset": 0.0,
       "type": "MX-64",
       "id": 20,
-      "angle_limit": [-50,25],
+      "angle_limit": [-85,0],
       "orientation": "direct"
     },
     "r_shoulder_z": {

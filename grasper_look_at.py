@@ -24,14 +24,13 @@ print("\n--- Executing Sequence with IK Move ---")
 # Initial position
 #grasper.init_position(init_pos_l, init_ori, "left")
 #grasper.init_position(init_pos_r, init_ori, "right")
-for x in np.arange(0.0, 0.51, 0.05):
-    grasper.look_at([0.4, x, 0.2])
-    #grasper.point_gripper("left")
-    #grasper.point_gripper("right")
-    #grasper.open_gripper("left")
-    #grasper.open_gripper("right")   
+for z in np.arange(0, 1, 0.2):
+    pos = [0.5, 0, 0]
+    print("Looking at:", pos)
+    grasper.look_at(pos)
+  
 
 # Initial position
-grasper.init_position(init_pos_l, init_ori, "left")
-grasper.init_position(init_pos_r, init_ori, "right")
+#grasper.init_position(init_pos_l, init_ori, "left")
+#grasper.init_position(init_pos_r, init_ori, "right")
 print("--- Sequence Finished ---\n")
