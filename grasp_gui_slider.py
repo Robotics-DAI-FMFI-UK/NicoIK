@@ -7,6 +7,45 @@ from numpy import rad2deg, deg2rad, set_printoptions, array, linalg, round, any,
 
 from grasper import Grasper
 
+def get_look_at_quaternion(eye_pos, target_pos):
+    """
+    Calculates a quaternion to orient an object at eye_pos to look at target_pos.
+    This is achieved by calculating the required yaw and pitch from the direction vector.
+    
+    Args:
+        eye_pos (list or np.array): The starting position (e.g., head link).
+        target_pos (list or np.array): The position to look at.
+
+    Returns:
+        list: A quaternion [x, y, z, w].
+    """
+    # Ensure inputs are numpy arrays
+    eye_pos = np.array(eye_pos)
+    target_pos = np.array(target_pos)
+    
+    # Calculate the direction vector from the eye to the target
+    direction = target_pos - eye_pos
+    
+    # Handle case where the target is at the same position as the eye
+    if np.linalg.norm(direction) < 1e-6:
+        return [0, 0, 0, 1] # Return identity quaternion (no rotation)
+        
+    # Calculate Yaw (rotation around Z-axis)
+    # This determines the left-right direction
+    yaw = np.arctan2(direction[1], direction[0])
+    
+    # Calculate Pitch (rotation around Y-axis)
+    # This determines the up-down direction
+    # The horizontal distance is the length of the projection onto the XY plane
+    horizontal_dist = np.sqrt(direction[0]**2 + direction[1]**2)
+    pitch = np.arctan2(-direction[2], horizontal_dist)
+    
+    # We assume Roll (rotation around X-axis) is 0 for a simple "look at"
+    roll = 0
+    
+    # Convert the Euler angles (roll, pitch, yaw) to a quaternion
+    return p.getQuaternionFromEuler([roll, pitch, yaw])
+
 def rad2nicodeg(nicojoints, rads):
         """Converts radians to Nico-specific degrees. Returns a dictionary."""
         if isinstance(nicojoints, str):
@@ -117,7 +156,7 @@ def main():
     parser.add_argument("--real_robot", action="store_true", help="Execute actions on the real robot (requires hardware connection).")
     parser.add_argument("-i", "--init_pos", nargs=3, type=float, default = [0.0, -0.3, 0.5], help="Target position for the robot end effector as a list of three floats.")
     parser.add_argument("-g", "--goal_pos", nargs=3, type=float, default = [0.3, -0.3, 0.07], help="Target position for the robot end effector as a list of three floats.")
-    parser.add_argument("--scene", type=str, help="Path to workspace scene object, such as tiago table", default = "./urdf/table_tiago.urdf")
+    parser.add_argument("--scene", type=str, help="Path to workspace scene object, such as tiago table", default = "./urdf/table_nico.urdf")
     parser.add_argument("--texture", type=str, help="Path to the texture of scene object", default = "./urdf/textures/table.jpg")
     
     args = parser.parse_args()
@@ -135,7 +174,7 @@ def main():
     #except Exception as e:
     #    print(f"Error initializing Grasper for real robot: {e}")
 
-    modes = ["right"]
+    mode = "right"
 
     # Initialize PyBullet
     physicsClient = p.connect(p.GUI)
@@ -154,9 +193,10 @@ def main():
     scene_uid = p.loadURDF(args.scene, useFixedBase=True)
     texture_id = p.loadTexture(args.texture)
     p.changeVisualShape(scene_uid, -1, rgbaColor=[1, 1, 1, 1], textureUniqueId=texture_id)
-
-
-    p.resetBasePositionAndOrientation(scene_uid, [0.225, 0.2, 0], p.getQuaternionFromEuler([0, 0, -np.pi / 2]))
+    #Nico table position
+    p.resetBasePositionAndOrientation(scene_uid, [0.0, 0.0, -0.73], p.getQuaternionFromEuler([0, 0, -np.pi / 2]))
+    #Tiago table position 
+    #p.resetBasePositionAndOrientation(scene_uid, [0.225, 0.2, 0.7], p.getQuaternionFromEuler([0, 0, -np.pi / 2]))
     # Create tablet mesh
     # p.createMultiBody(baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_BOX, halfExtents=[.165, .267, 0.001],
     #                                                        rgbaColor=[0, 0, 0.0, .5]),
@@ -183,6 +223,8 @@ def main():
             end_effector_index_l = joint_idx
         elif link_name == 'endeffector':
             end_effector_index_r = joint_idx
+        elif link_name == 'head':
+            end_effector_index_h = joint_idx
     
     end_effector_index = end_effector_index_r
     if end_effector_index == -1:
@@ -282,7 +324,12 @@ def main():
             if ord('b') in keys and keys[ord('b')] & p.KEY_WAS_TRIGGERED:
                 end_effector_index = end_effector_index_r
                 print("Switched to right end effector") 
-                mode = "right"             
+                mode = "right"
+
+            if ord('h') in keys and keys[ord('h')] & p.KEY_WAS_TRIGGERED:
+                end_effector_index = end_effector_index_h
+                print("Switched to head end effector") 
+                mode = "head"             
             
             if ord('n') in keys and keys[ord('n')] & p.KEY_WAS_TRIGGERED:
                 end_effector_index = end_effector_index_l
@@ -334,7 +381,17 @@ def main():
 
 
             # Apply IK first using the determined target
-            ik_solution = calculate_ik(robot_id, end_effector_index, target_pos, target_orientation_quat)
+            if mode == "head":
+                # Get the current head position to calculate the look-at orientation
+                head_link_state = p.getLinkState(robot_id, end_effector_index_h)
+                head_pos = head_link_state[0]
+                
+                # Calculate the look-at quaternion
+                target_orientation_quat = get_look_at_quaternion(head_pos, target_pos)
+                ik_solution = p.calculateInverseKinematics(robot_id, end_effector_index, target_pos,target_orientation_quat)
+            else:
+                ik_solution = p.calculateInverseKinematics(robot_id, end_effector_index, target_pos, target_orientation_quat)
+            #print(f"IK Solution: {ik_solution}", end="\r")
             apply_ik_solution(robot_id, ik_solution, joint_idxs)
 
             # Get current state of the end effector AFTER applying IK
@@ -394,13 +451,13 @@ def main():
             
             #orientation_diff_text_id = p.addUserDebugText(
             #    orientation_diff_text, 
-            #    textPosition=[0.05, 0.0, 0.8], # Position the text in the GUI
+            #    textPosition=[0.05, 0.0, 0.8], # Position in the GUI
             #    textColorRGB=color, 
             #    textSize=1.0
             #)
             #orientation_diff_text_id = p.addUserDebugText(
             #    str(rad2nicodeg(joint_names, ik_solution)), 
-            #    textPosition=[0.05, -2.0, 0.5], # Position the text in the GUI
+            #    textPosition=[0.05, -2.0, 0.5], # Position in the GUI
             #    textColorRGB=color, 
             #    textSize=1.0
             #)

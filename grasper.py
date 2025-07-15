@@ -745,20 +745,28 @@ class Grasper:
 
         ik_solution = p.calculateInverseKinematics(self.robot_id,
                                                      self.end_effector_index_h,
-                                                     pos)
+                                                     pos,
+                                                     lowerLimits=self.joints_limits_l,
+                                                     upperLimits=self.joints_limits_u,
+                                                     jointRanges=self.joints_ranges,
+                                                     restPoses=self.joints_rest_poses,
+                                                     maxNumIterations=300,
+                                                     residualThreshold=0.0001)
+        print ("Position:" + str(pos))
+        print("IK Solution (Radians):", ik_solution)
         ik_solution_nico_deg = self.rad2nicodeg(self.head_actuated,ik_solution)
-        
-        
+        print("IK Solution (Nico Degrees):", ik_solution_nico_deg)
+
         filtered_solution = {
             joint: angle for joint, angle in ik_solution_nico_deg.items()
-            if joint in self.head_actuated
+            if joint in self.head_actuated}
 
         
         for joint_name, angle_deg in filtered_solution.items():
             if angle_deg is not None:  # Ensure the angle is valid
                 # Execute the movement command
                 self.robot.setAngle(joint_name, float(angle_deg), self.speed)
-                success_count += 1
+                #success_count += 1
                 print(f"  Set {joint_name} to {angle_deg:.2f} degrees.")
             else:
                 print(f"  Skipping {joint_name} due to invalid angle.")
