@@ -1,7 +1,7 @@
 import numpy as np
 from grasper import Grasper
 from sim_height_calculation import calculate_z
-
+import random
 print("Initializing Grasper...")
 try:
     grasper = Grasper(
@@ -16,22 +16,21 @@ except Exception as e:
 init_pos_l = [0, 0.3, 0.5]
 init_pos_r = [init_pos_l[0], -init_pos_l[1], init_pos_l[2]]
 init_ori = [0, -1.57, 0]
-grasp_ori = [0,0,0.7] # Top grap [0,0,0] or side grasp [1.57,0,0]
+grasp_ori = [1.57,0,0.0] # Top grap [0,0,0] or side grasp [1.57,0,0]
 goal1= [0.27, 0.0]
 goal2 = [0.4, 0.0]
     
 print("\n--- Executing Sequence with IK Move ---")
 # Initial position
-#grasper.init_position(init_pos_l, init_ori, "left")
-#grasper.init_position(init_pos_r, init_ori, "right")
-for x in np.arange(0.3, .61, 0.1):
-    for y in np.arange(-0.4, .4, 0.1):
-        pos = [x, y, 0]
-        print("Looking at:", pos)
-        grasper.look_at(pos)
-  
-
-# Initial position
-#grasper.init_position(init_pos_l, init_ori, "left")
-#grasper.init_position(init_pos_r, init_ori, "right")
-print("--- Sequence Finished ---\n")
+grasper.move_both_arms (init_pos_r, init_ori)
+grasper.point_gripper("right")
+grasper.point_gripper("left")
+while True:
+    rand_pos = [
+    random.uniform(0.15, 0.45),   # x: 0.15 to 0.35
+    random.uniform(-0.3, -0.1),   # y: -0.3 to -0.1
+    random.uniform(0.15, 0.35)  ]
+    grasper.move_both_arms_head(rand_pos, grasp_ori)
+    #object_z2 = calculate_z(goal2[0],goal2[1]) + 0.03
+    #grasper.place_object([goal1[0],goal1[1],object_z1], grasp_ori, "right")
+    #grasper.move_both_arms (init_pos_r, init_ori)

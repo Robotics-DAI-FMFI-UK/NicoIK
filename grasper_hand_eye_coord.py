@@ -16,22 +16,24 @@ except Exception as e:
 init_pos_l = [0, 0.3, 0.5]
 init_pos_r = [init_pos_l[0], -init_pos_l[1], init_pos_l[2]]
 init_ori = [0, -1.57, 0]
-grasp_ori = [0,0,0.7] # Top grap [0,0,0] or side grasp [1.57,0,0]
-goal1= [0.27, 0.0]
-goal2 = [0.4, 0.0]
-    
+grasp_ori = [0,0,0] # Top grap [0,0,0] or side grasp [1.57,0,0]
+pos = [0.35, -0.3, 0.19]
+
 print("\n--- Executing Sequence with IK Move ---")
 # Initial position
-#grasper.init_position(init_pos_l, init_ori, "left")
-#grasper.init_position(init_pos_r, init_ori, "right")
-for x in np.arange(0.3, .61, 0.1):
-    for y in np.arange(-0.4, .4, 0.1):
-        pos = [x, y, 0]
-        print("Looking at:", pos)
-        grasper.look_at(pos)
+grasper.init_position(init_pos_l, init_ori, "left")
+grasper.init_position(init_pos_r, init_ori, "right")
+grasper.look_at([0.5,0,0.4]) 
+grasper.point_gripper("left")
+grasper.point_gripper("right")
+for y in np.arange(0.3, -0.3, 0.06):
+    grasper.move_arm([pos[0],y,pos[2]],grasp_ori,"right", autozpos=True, autoori=True)
+    grasper.look_at([pos[0],y,pos[2]])
+    #grasper.move_arm([pos[0],-y,pos[2]],grasp_ori,"left", autozpos=True, autoori=True)
+    #grasper.look_at([pos[0],-y,pos[2]])
   
 
 # Initial position
-#grasper.init_position(init_pos_l, init_ori, "left")
-#grasper.init_position(init_pos_r, init_ori, "right")
+grasper.init_position(init_pos_l, init_ori, "left")
+grasper.init_position(init_pos_r, init_ori, "right")
 print("--- Sequence Finished ---\n")
