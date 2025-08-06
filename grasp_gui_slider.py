@@ -261,7 +261,7 @@ def main():
     # Create sliders for  box position control
     x2_slider = p.addUserDebugParameter("Init X", -0.2, 1.0, box2_initial_pos[0])
     y2_slider = p.addUserDebugParameter("Init Y", -0.6, 0.6, box2_initial_pos[1])
-    z2_slider = p.addUserDebugParameter("Init Z", 0.3, 1.5, box2_initial_pos[2])
+    z2_slider = p.addUserDebugParameter("Init Z", 0.0, 1.5, box2_initial_pos[2])
 
     # Create additional init sliders for Yaw, Pitch, Roll
     init_roll_slider = p.addUserDebugParameter("Init Roll", -np.pi, np.pi, 0)
@@ -335,6 +335,14 @@ def main():
                 end_effector_index = end_effector_index_l
                 print("Switched to left end effector")
                 mode = "left"
+            
+            if ord('t') in keys and keys[ord('t')] & p.KEY_WAS_TRIGGERED:
+                target_box_id = p.createMultiBody(
+                    baseMass=0, # Set mass to 0 if it's only visual
+                    baseCollisionShapeIndex=-1, # No collision shape
+                    baseVisualShapeIndex=p.createVisualShape(p.GEOM_BOX, halfExtents=[0.01]*3, rgbaColor=[1, 0, 1, 0.8]), # Visual shape only
+                    basePosition=[p.readUserDebugParameter(x_slider), p.readUserDebugParameter(y_slider), p.readUserDebugParameter(z_slider)]
+                )
             
 
             
@@ -417,6 +425,20 @@ def main():
 
             # Draw the new red line (Desired Orientation)
             orientation_line_id = p.addUserDebugLine(ee_pos, line_end_desired, [1, 0, 0], 5) # Red line
+
+
+            # Draw line extending hand backwards
+            if ord('p') in keys and keys[ord('p')] & p.KEY_WAS_TRIGGERED:
+                y_axis_direction_desired = [rot_matrix_desired[0], rot_matrix_desired[3], rot_matrix_desired[6]]
+                # Invert
+                y_line_end_desired = [ee_pos[0] - y_axis_direction_desired[0] * 1,
+                                      ee_pos[1] - y_axis_direction_desired[1] * 1,
+                                      ee_pos[2] - y_axis_direction_desired[2] * 1]
+
+                # Draw the new red line (Desired Orientation)
+                y_line_id = p.addUserDebugLine(ee_pos, y_line_end_desired, [1, 0, 1], 2)
+
+
 
             # --- Calculate and Display Orientation Difference ---
             # Quaternion difference
