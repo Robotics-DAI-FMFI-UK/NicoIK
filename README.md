@@ -16,6 +16,20 @@ https://github.com/knowledgetechnologyuhh/NICO-software/tree/master/api/src/nico
 
 If you do not have real robot, you can comment lines 6 and 7 in ik_solver.py
 
+## Grasper class
+
+This is a basic class to control Nico grasping with predefined grasp pose. In the Grasper class there are methods to control both arms and head based on the target position (and orientation). There are methods for both DK and IK control, namely:
+
+DK - move to pose, close hand, open hand, perform_grasp, perform_drop
+
+IK - move_arm, move_both_arms, move_gripper,close_gripper,open_gipper, point_griper, close_finger, move_finger, look_at, grasp_object, move_object, pick_object, place_object
+
+There are several example scripts to control the robot, try grasper....py
+
+If you want to test the robot urdf joints use visualizer.py
+
+If you want to test IK in simulation use grasp_gui_slider.py
+
 
 ## How to use
 

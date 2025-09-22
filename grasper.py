@@ -1,6 +1,7 @@
 import pybullet as p
 import time
 from numpy import random, rad2deg, deg2rad, set_printoptions, array, linalg, round, any, mean, arctan2, sqrt
+from scipy.interpolate import Rbf
 import sys  # Add this import at the top of the file
 from sim_height_calculation import calculate_z
 
@@ -31,6 +32,13 @@ class Grasper:
         'l_shoulder_z': -24.0, 'l_shoulder_y': 13.0, 'l_arm_x': 0.0, 'l_elbow_y': 104.0,
         'l_wrist_z': -4.0, 'l_wrist_x': -55.0, 'l_thumb_z': -62.0, 'l_thumb_x': -180.0,
         'l_indexfinger_x': -170.0, 'l_middlefingers_x': -180.0
+    }
+
+    RIGHTHAND_RBF_POINTS = {
+        'x': [0.133, 0.208, 0.272, 0.338, 0.388, 0.420, 0.458, 0.483, 0.496, 0.480, 0.464, 0.433, 0.392, 0.344, 0.291, 0.227, 0.164, 0.152, 0.139, 0.123, 0.104, 0.111, 0.085, 0.069, 0.085, 0.158, 0.177, 0.193, 0.202, 0.218, 0.234, 0.313, 0.300, 0.278, 0.268, 0.240, 0.227, 0.313, 0.344, 0.366, 0.376, 0.385, 0.407, 0.426, 0.426, 0.272, 0.369],
+        'y': [-0.395, -0.437, -0.447, -0.411, -0.358, -0.289, -0.216, -0.142, -0.074, -0.005, 0.068, 0.142, 0.200, 0.247, 0.279, 0.305, 0.321, 0.258, 0.184, 0.100, 0.005, -0.084, -0.163, -0.253, -0.326, -0.289, -0.189, -0.089, 0.016, 0.116, 0.205, 0.158, 0.053, -0.053, -0.153, -0.242, -0.342, -0.316, -0.216, -0.121, -0.026, 0.079, -0.179, -0.089, 0.005, -0.384, -0.274],
+        'yaw': [-0.595, -0.728, -0.794, -0.761, -0.694, -0.463, -0.265, -0.132, -0.033, 0.165, 0.331, 0.529, 0.728, 0.893, 1.058, 1.224, 1.455, 1.389, 1.389, 1.389, 1.488, 0.794, 0.298, -0.132, -0.298, -0.298, -0.099, 0.298, 0.959, 1.058, 1.190, 0.992, 0.761, 0.496, 0.066, -0.265, -0.496, -0.496, -0.198, 0.099, 0.298, 0.562, -0.066, 0.198, 0.331, -0.496, -0.331],
+        'z': [0.115, 0.123, 0.128, 0.130, 0.132, 0.131, 0.128, 0.129, 0.127, 0.127, 0.126, 0.124, 0.120, 0.114, 0.115, 0.107, 0.091, 0.095, 0.115, 0.105, 0.101, 0.095, 0.092, 0.089, 0.102, 0.106, 0.101, 0.094, 0.095, 0.104, 0.112, 0.116, 0.112, 0.109, 0.108, 0.110, 0.120, 0.118, 0.117, 0.122, 0.123]
     }
 
     def __init__(self, urdf_path="./urdf/nico_grasper.urdf", motor_config='./nico_humanoid_upper_rh7d_ukba.json', connect_robot=True):
@@ -76,6 +84,18 @@ class Grasper:
         self.opposite = 170
         self.speed = self.SPEED
         self.delay = self.DELAY
+        self.righthand_rbf_yaw = Rbf(
+            self.RIGHTHAND_RBF_POINTS['x'],
+            self.RIGHTHAND_RBF_POINTS['y'],
+            self.RIGHTHAND_RBF_POINTS['yaw'],
+            function='multiquadric'                 # possible options: linear, gaussian
+        )
+        self.righthand_rbf_z = Rbf(
+            self.RIGHTHAND_RBF_POINTS['x'][0:18] + self.RIGHTHAND_RBF_POINTS['x'][23:29] + self.RIGHTHAND_RBF_POINTS['x'][30:],
+            self.RIGHTHAND_RBF_POINTS['y'][0:18] + self.RIGHTHAND_RBF_POINTS['y'][23:29] + self.RIGHTHAND_RBF_POINTS['y'][30:],
+            self.RIGHTHAND_RBF_POINTS['z'],
+            function='multiquadric'                 # possible options: linear, gaussian
+        )
 
         try:
             # Connect to PyBullet (GUI or DIRECT)
@@ -518,10 +538,12 @@ class Grasper:
         ori = list(ori)
 
         if autozpos:
-            pos[2] = calculate_z(pos[0], pos[1]) + 0.04
+            # pos[2] = calculate_z(pos[0], pos[1]) + 0.04
+            pos[2] = self.righthand_rbf_z(pos[0], pos[1])
 
         if autoori:
-            ori[2] = self.compute_ori_from_pos(pos)
+            # ori[2] = self.compute_ori_from_pos(pos)
+            ori[2] = self.righthand_rbf_yaw(pos[0], pos[1])
 
         ik_solution_nico_deg = self.rad2nicodeg(self.joint_names, self.calculate_ik(side, pos, ori))
 
@@ -948,11 +970,14 @@ class Grasper:
                 print(f"  Skipping {joint_name} due to invalid angle.")
         time.sleep(self.delay/2)  # Delay after the move completes
 
-    def pick_object(self, pos, ori, side):
-        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=True)
-        self.move_arm(pos, ori, side, autoori=True)
+    def pick_object(self, pos, ori, side, autozpos=False, autoori=False):
+        if autozpos:
+            # pos[2] = calculate_z(pos[0], pos[1]) + 0.04
+            pos[2] = self.righthand_rbf_z(pos[0], pos[1])
+        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=autoori)
+        self.move_arm(pos, ori, side, autoori=autoori)
         self.close_gripper(side)
-        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=True) # Close right gripper
+        self.move_arm([pos[0],pos[1],pos[2]+0.12], ori, side, autoori=autoori) # Close right gripper
 
     def approach_object(self, pos, ori, side):
         self.move_arm([pos[0],pos[1],pos[2]+0.05], ori, side)

@@ -88,9 +88,9 @@
 	<joint name="head_y" type="revolute">
 		<parent link="neck"/>
 		<child link="head"/>
-		<origin rpy="0 -0.69 0" xyz="0 0.0 0.105"/>
+		<origin rpy="0 0 0" xyz="0 0.0 0.105"/>
 		<axis xyz="0 -1 0"/>
-		<limit effort="30" lower="-1.483" upper="0" velocity="1"/>
+		<limit effort="30" lower="-0.8726" upper="0.4363" velocity="1"/>
 	</joint>
 	<link name="sight">
     	<visual>
